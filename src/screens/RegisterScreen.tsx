@@ -21,26 +21,23 @@ export function RegisterScreen({ navigation }: NativeStackScreenProps<RootStackP
   const [loading, setLoading] = useState(false);
 
   const inputStyle = {
-    minHeight: 46,
-    borderRadius: theme.radii.lg,
-    borderWidth: 1,
     borderColor: theme.colors.border,
     backgroundColor: theme.colors.surface,
     color: theme.colors.text,
-    paddingHorizontal: 12,
   } as const;
 
   return (
-    <ThemedView style={{ flex: 1, padding: 16, justifyContent: 'center', gap: 14 }}>
-      <ThemedText variant="title" style={{ fontSize: 24, lineHeight: 30 }}>Create Account</ThemedText>
+    <ThemedView className="flex-1 justify-center gap-3.5 px-4">
+      <ThemedText variant="title" className="text-2xl leading-8">Create Account</ThemedText>
       <ThemedText variant="muted">Create a mock account to personalize the demo locally.</ThemedText>
 
-      <View style={{ gap: 10 }}>
+      <View className="gap-2.5">
         <TextInput
           value={name}
           onChangeText={setName}
           placeholder="Full name"
           placeholderTextColor={theme.colors.textMuted}
+          className="min-h-[46px] rounded-xl border px-3"
           style={inputStyle}
         />
         <TextInput
@@ -50,6 +47,7 @@ export function RegisterScreen({ navigation }: NativeStackScreenProps<RootStackP
           keyboardType="email-address"
           placeholder="Email"
           placeholderTextColor={theme.colors.textMuted}
+          className="min-h-[46px] rounded-xl border px-3"
           style={inputStyle}
         />
         <TextInput
@@ -58,6 +56,7 @@ export function RegisterScreen({ navigation }: NativeStackScreenProps<RootStackP
           secureTextEntry
           placeholder="Password"
           placeholderTextColor={theme.colors.textMuted}
+          className="min-h-[46px] rounded-xl border px-3"
           style={inputStyle}
         />
       </View>
@@ -75,7 +74,7 @@ export function RegisterScreen({ navigation }: NativeStackScreenProps<RootStackP
       />
 
       <Pressable onPress={() => navigation.navigate('Login')}>
-        <ThemedText variant="caption" style={{ textAlign: 'center', color: theme.colors.primary, fontWeight: '700' }}>
+        <ThemedText variant="caption" className="text-center font-bold" style={{ color: theme.colors.primary }}>
           Already have an account? Sign in
         </ThemedText>
       </Pressable>

@@ -1,8 +1,7 @@
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, Text, View } from 'react-native';
 import React, { useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 
-import { ThemedText } from '../components/ThemedText';
 import { ThemedView } from '../components/ThemedView';
 import { useTheme } from '../theme/ThemeProvider';
 import { RootStackParamList } from '../types/navigation';
@@ -22,25 +21,19 @@ export function OnboardingSplashScreen({
   }, [navigation]);
 
   return (
-    <ThemedView style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20, gap: 14 }}>
+    <ThemedView className="flex-1 items-center justify-center gap-3.5 px-5">
       <View
-        style={{
-          width: 74,
-          height: 74,
-          borderRadius: 37,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: theme.colors.primarySoft,
-          borderWidth: 1,
-          borderColor: theme.colors.border,
-        }}
+        className="h-[74px] w-[74px] items-center justify-center rounded-full border"
+        style={{ backgroundColor: theme.colors.primarySoft, borderColor: theme.colors.border }}
       >
         <Ionicons name="sparkles-outline" size={30} color={theme.colors.primary} />
       </View>
-      <ThemedText variant="title" style={{ fontSize: 24 }}>Korean App</ThemedText>
-      <ThemedText variant="muted" style={{ textAlign: 'center' }}>
+      <Text className="text-center text-2xl font-bold" style={{ color: theme.colors.text }}>
+        Korean App
+      </Text>
+      <Text className="text-center text-sm" style={{ color: theme.colors.textMuted }}>
         Preparing your shopping experience...
-      </ThemedText>
+      </Text>
       <ActivityIndicator color={theme.colors.primary} />
     </ThemedView>
   );

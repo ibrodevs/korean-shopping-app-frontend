@@ -10,7 +10,9 @@
     }
   },
   "include": [
+    "**/*.d.ts",
     "**/*.ts",
-    "**/*.tsx"
+    "**/*.tsx",
+    "nativewind-env.d.ts"
   ]
 }

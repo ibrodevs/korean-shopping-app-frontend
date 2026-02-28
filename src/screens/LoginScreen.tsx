@@ -20,21 +20,17 @@ export function LoginScreen({ navigation }: NativeStackScreenProps<RootStackPara
   const [loading, setLoading] = useState(false);
 
   const inputStyle = {
-    minHeight: 46,
-    borderRadius: theme.radii.lg,
-    borderWidth: 1,
     borderColor: theme.colors.border,
     backgroundColor: theme.colors.surface,
     color: theme.colors.text,
-    paddingHorizontal: 12,
   } as const;
 
   return (
-    <ThemedView style={{ flex: 1, padding: 16, justifyContent: 'center', gap: 14 }}>
-      <ThemedText variant="title" style={{ fontSize: 24, lineHeight: 30 }}>Sign In</ThemedText>
+    <ThemedView className="flex-1 justify-center gap-3.5 px-4">
+      <ThemedText variant="title" className="text-2xl leading-8">Sign In</ThemedText>
       <ThemedText variant="muted">Use any email/password to enter the frontend demo.</ThemedText>
 
-      <View style={{ gap: 10 }}>
+      <View className="gap-2.5">
         <TextInput
           value={email}
           onChangeText={setEmail}
@@ -42,6 +38,7 @@ export function LoginScreen({ navigation }: NativeStackScreenProps<RootStackPara
           keyboardType="email-address"
           placeholder="Email"
           placeholderTextColor={theme.colors.textMuted}
+          className="min-h-[46px] rounded-xl border px-3"
           style={inputStyle}
         />
         <TextInput
@@ -50,12 +47,13 @@ export function LoginScreen({ navigation }: NativeStackScreenProps<RootStackPara
           secureTextEntry
           placeholder="Password"
           placeholderTextColor={theme.colors.textMuted}
+          className="min-h-[46px] rounded-xl border px-3"
           style={inputStyle}
         />
       </View>
 
       <Pressable onPress={() => navigation.navigate('ForgotPassword')}>
-        <ThemedText variant="caption" style={{ color: theme.colors.primary, fontWeight: '700' }}>
+        <ThemedText variant="caption" className="font-bold" style={{ color: theme.colors.primary }}>
           Forgot password?
         </ThemedText>
       </Pressable>
@@ -73,8 +71,8 @@ export function LoginScreen({ navigation }: NativeStackScreenProps<RootStackPara
       />
 
       <Pressable onPress={() => navigation.navigate('Register')}>
-        <ThemedText variant="caption" style={{ textAlign: 'center' }}>
-          New here? <ThemedText variant="caption" style={{ color: theme.colors.primary, fontWeight: '700' }}>Create account</ThemedText>
+        <ThemedText variant="caption" className="text-center">
+          New here? <ThemedText variant="caption" className="font-bold" style={{ color: theme.colors.primary }}>Create account</ThemedText>
         </ThemedText>
       </Pressable>
     </ThemedView>

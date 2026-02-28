@@ -16,8 +16,8 @@ export function ForgotPasswordScreen({ navigation }: NativeStackScreenProps<Root
   const [email, setEmail] = useState('');
 
   return (
-    <ThemedView style={{ flex: 1, padding: 16, justifyContent: 'center', gap: 14 }}>
-      <ThemedText variant="title" style={{ fontSize: 24, lineHeight: 30 }}>Forgot Password</ThemedText>
+    <ThemedView className="flex-1 justify-center gap-3.5 px-4">
+      <ThemedText variant="title" className="text-2xl leading-8">Forgot Password</ThemedText>
       <ThemedText variant="muted">
         Enter your email and we will simulate sending a reset link (UI only, no real email delivery).
       </ThemedText>
@@ -28,14 +28,11 @@ export function ForgotPasswordScreen({ navigation }: NativeStackScreenProps<Root
         keyboardType="email-address"
         placeholder="Email"
         placeholderTextColor={theme.colors.textMuted}
+        className="min-h-[46px] rounded-xl border px-3"
         style={{
-          minHeight: 46,
-          borderRadius: theme.radii.lg,
-          borderWidth: 1,
           borderColor: theme.colors.border,
           backgroundColor: theme.colors.surface,
           color: theme.colors.text,
-          paddingHorizontal: 12,
         }}
       />
       <PrimaryButton
@@ -46,7 +43,10 @@ export function ForgotPasswordScreen({ navigation }: NativeStackScreenProps<Root
           navigation.goBack();
         }}
       />
-      <View style={{ borderRadius: theme.radii.lg, borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.surface, padding: 12 }}>
+      <View
+        className="rounded-xl border p-3"
+        style={{ borderColor: theme.colors.border, backgroundColor: theme.colors.surface }}
+      >
         <ThemedText variant="caption">Frontend-only demo: no real authentication backend is connected.</ThemedText>
       </View>
     </ThemedView>
