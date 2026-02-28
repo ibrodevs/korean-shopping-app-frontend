@@ -1,0 +1,26 @@
+{
+  "expo": {
+    "name": "Korean App",
+    "slug": "korean-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#FFFFFF"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#FFFFFF"
+      },
+      "edgeToEdgeEnabled": true
+    },
+    "web": {
+      "bundler": "metro"
+    }
+  }
+}
