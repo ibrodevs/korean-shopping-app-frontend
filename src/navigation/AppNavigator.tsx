@@ -37,6 +37,8 @@ import { LoginScreen } from '../screens/LoginScreen';
 import { OrderDetailsScreen } from '../screens/OrderDetailsScreen';
 import { OrdersScreen } from '../screens/OrdersScreen';
 import { PaymentMethodScreen } from '../screens/PaymentMethodScreen';
+import { PaymentsScreen } from '../screens/PaymentsScreen';
+import { AddCardScreen } from '../screens/AddCardScreen';
 import { PrivacyScreen } from '../screens/PrivacyScreen';
 import { ProductDetailsScreen } from '../screens/ProductDetailsScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
@@ -105,6 +107,12 @@ function ProfileStackNavigator() {
       <ProfileStack.Screen name="Profile" component={ProfileScreen} options={{ headerShown: false }} />
       <ProfileStack.Screen name="EditProfile" component={EditProfileScreen} options={{ title: 'Edit profile' }} />
       <ProfileStack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
+      <ProfileStack.Screen name="Payments" component={PaymentsScreen} options={{ title: 'Payments' }} />
+      <ProfileStack.Screen
+        name="AddCard"
+        component={AddCardScreen}
+        options={{ title: 'Add card', presentation: 'modal', headerShadowVisible: false }}
+      />
       <ProfileStack.Screen name="About" component={AboutScreen} options={{ title: 'About' }} />
       <ProfileStack.Screen name="FAQ" component={FAQScreen} options={{ title: 'FAQ' }} />
       <ProfileStack.Screen name="Contact" component={ContactScreen} options={{ title: 'Contact' }} />

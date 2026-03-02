@@ -9,6 +9,7 @@ import { AppNavigator } from './src/navigation/AppNavigator';
 import { AppStateProvider } from './src/contexts/AppStateContext';
 import { AuthProvider } from './src/contexts/AuthContext';
 import { OrdersProvider } from './src/contexts/OrdersContext';
+import { PaymentCardsProvider } from './src/contexts/PaymentCardsContext';
 import { ToastProvider } from './src/contexts/ToastContext';
 import { ThemeProvider, useTheme } from './src/theme/ThemeProvider';
 
@@ -31,9 +32,11 @@ function AppContent() {
       <AuthProvider>
         <OrdersProvider>
           <AppStateProvider>
-            <ToastProvider>
-              <AppNavigator />
-            </ToastProvider>
+            <PaymentCardsProvider>
+              <ToastProvider>
+                <AppNavigator />
+              </ToastProvider>
+            </PaymentCardsProvider>
           </AppStateProvider>
         </OrdersProvider>
       </AuthProvider>

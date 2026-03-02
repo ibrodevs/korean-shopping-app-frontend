@@ -36,6 +36,8 @@ export type ProfileStackParamList = {
   Profile: undefined;
   EditProfile: undefined;
   Settings: undefined;
+  Payments: undefined;
+  AddCard: undefined;
   About: undefined;
   FAQ: undefined;
   Contact: undefined;

@@ -122,6 +122,7 @@ export function SettingsScreen({ navigation }: NativeStackScreenProps<ProfileSta
         </Section>
 
         <Section title="App">
+          <NavRow label="Payments" route="Payments" />
           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
             <ThemedText>Currency</ThemedText>
             <ThemedText variant="caption">{APP_STRINGS.currency}</ThemedText>
