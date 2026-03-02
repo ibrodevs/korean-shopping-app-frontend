@@ -10,6 +10,7 @@ import { useTheme } from '../theme/ThemeProvider';
 import { RootStackParamList } from '../types/navigation';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { hapticSuccess } from '../utils/haptics';
+import { extractApiErrorMessage } from '../api/auth';
 
 export function RegisterScreen({ navigation }: NativeStackScreenProps<RootStackParamList, 'Register'>) {
   const theme = useTheme();
@@ -29,7 +30,7 @@ export function RegisterScreen({ navigation }: NativeStackScreenProps<RootStackP
   return (
     <ThemedView className="flex-1 justify-center gap-3.5 px-4">
       <ThemedText variant="title" className="text-2xl leading-8">Create Account</ThemedText>
-      <ThemedText variant="muted">Create a mock account to personalize the demo locally.</ThemedText>
+      <ThemedText variant="muted">Create your account to start shopping.</ThemedText>
 
       <View className="gap-2.5">
         <TextInput
@@ -65,11 +66,16 @@ export function RegisterScreen({ navigation }: NativeStackScreenProps<RootStackP
         label="Register"
         loading={loading}
         onPress={async () => {
-          setLoading(true);
-          await register(name, email || 'guest@korean.app', password);
-          await hapticSuccess();
-          showToast('Account created', 'success');
-          setLoading(false);
+          try {
+            setLoading(true);
+            await register(name, email || 'guest@korean.app', password);
+            await hapticSuccess();
+            showToast('Account created', 'success');
+          } catch (error) {
+            showToast(extractApiErrorMessage(error), 'warning');
+          } finally {
+            setLoading(false);
+          }
         }}
       />
 

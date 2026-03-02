@@ -122,14 +122,23 @@ export function ProfileScreen({ navigation }: Props) {
               </View>
             </View>
             {isAuthenticated ? (
-              <PrimaryButton
-                label="Sign Out"
-                variant="outline"
-                onPress={async () => {
-                  await logout();
-                  showToast('Signed out');
-                }}
-              />
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                <PrimaryButton
+                  label="Edit Profile"
+                  variant="outline"
+                  style={{ flex: 1 }}
+                  onPress={() => navigation.navigate('EditProfile')}
+                />
+                <PrimaryButton
+                  label="Sign Out"
+                  variant="outline"
+                  style={{ flex: 1 }}
+                  onPress={async () => {
+                    await logout();
+                    showToast('Signed out');
+                  }}
+                />
+              </View>
             ) : (
               <View style={{ flexDirection: 'row', gap: 10 }}>
                 <PrimaryButton

@@ -34,6 +34,7 @@ export type OrdersStackParamList = {
 
 export type ProfileStackParamList = {
   Profile: undefined;
+  EditProfile: undefined;
   Settings: undefined;
   About: undefined;
   FAQ: undefined;

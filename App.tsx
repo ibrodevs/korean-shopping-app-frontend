@@ -3,6 +3,7 @@ import './global.css';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { Text, TextInput } from 'react-native';
 
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { AppStateProvider } from './src/contexts/AppStateContext';
@@ -10,6 +11,16 @@ import { AuthProvider } from './src/contexts/AuthContext';
 import { OrdersProvider } from './src/contexts/OrdersContext';
 import { ToastProvider } from './src/contexts/ToastContext';
 import { ThemeProvider, useTheme } from './src/theme/ThemeProvider';
+
+const GlobalText = Text as any;
+GlobalText.defaultProps = GlobalText.defaultProps ?? {};
+GlobalText.defaultProps.allowFontScaling = false;
+GlobalText.defaultProps.maxFontSizeMultiplier = 1;
+
+const GlobalTextInput = TextInput as any;
+GlobalTextInput.defaultProps = GlobalTextInput.defaultProps ?? {};
+GlobalTextInput.defaultProps.allowFontScaling = false;
+GlobalTextInput.defaultProps.maxFontSizeMultiplier = 1;
 
 function AppContent() {
   const { isDark } = useTheme();

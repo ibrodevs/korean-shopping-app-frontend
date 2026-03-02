@@ -27,6 +27,7 @@ import { CartScreen } from '../screens/CartScreen';
 import { CatalogScreen } from '../screens/CatalogScreen';
 import { CheckoutScreen } from '../screens/CheckoutScreen';
 import { ContactScreen } from '../screens/ContactScreen';
+import { EditProfileScreen } from '../screens/EditProfileScreen';
 import { FAQScreen } from '../screens/FAQScreen';
 import { FavoritesScreen } from '../screens/FavoritesScreen';
 import { FiltersModalScreen } from '../screens/FiltersModalScreen';
@@ -102,6 +103,7 @@ function ProfileStackNavigator() {
   return (
     <ProfileStack.Navigator screenOptions={{ headerShadowVisible: false }}>
       <ProfileStack.Screen name="Profile" component={ProfileScreen} options={{ headerShown: false }} />
+      <ProfileStack.Screen name="EditProfile" component={EditProfileScreen} options={{ title: 'Edit profile' }} />
       <ProfileStack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
       <ProfileStack.Screen name="About" component={AboutScreen} options={{ title: 'About' }} />
       <ProfileStack.Screen name="FAQ" component={FAQScreen} options={{ title: 'FAQ' }} />

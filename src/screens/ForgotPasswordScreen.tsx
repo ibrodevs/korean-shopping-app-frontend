@@ -47,7 +47,7 @@ export function ForgotPasswordScreen({ navigation }: NativeStackScreenProps<Root
         className="rounded-xl border p-3"
         style={{ borderColor: theme.colors.border, backgroundColor: theme.colors.surface }}
       >
-        <ThemedText variant="caption">Frontend-only demo: no real authentication backend is connected.</ThemedText>
+        <ThemedText variant="caption">Password reset endpoint is not connected yet. This action is still demo-only.</ThemedText>
       </View>
     </ThemedView>
   );
