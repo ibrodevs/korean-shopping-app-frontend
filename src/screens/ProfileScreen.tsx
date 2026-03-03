@@ -40,7 +40,7 @@ export function ProfileScreen({ navigation }: Props) {
         if (item.action === 'orders') return navigation.getParent()?.navigate('OrdersTab');
         if (item.action === 'favorites') return navigation.getParent()?.navigate('FavoritesTab');
         if (item.action === 'addresses') return navigation.getParent()?.getParent()?.navigate('AddressBook');
-        if (item.action === 'payments') return navigation.getParent()?.getParent()?.navigate('PaymentMethod');
+        if (item.action === 'payments') return navigation.navigate('Payments');
         return navigation.navigate('Settings');
       }}
       style={({ pressed }) => ({

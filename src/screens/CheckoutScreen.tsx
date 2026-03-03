@@ -112,7 +112,16 @@ export function CheckoutScreen({ navigation }: NativeStackScreenProps<RootStackP
         </Section>
 
         <Section title="Payment method">
-          <NavRow label="Selected" value={checkoutDraft.paymentMethod} onPress={() => navigation.navigate('PaymentMethod')} />
+          <NavRow
+            label="Selected"
+            value={checkoutDraft.paymentMethod}
+            onPress={() =>
+              navigation.navigate('MainTabs', {
+                screen: 'ProfileTab',
+                params: { screen: 'Payments' },
+              })
+            }
+          />
         </Section>
 
         <Section title="Items preview">

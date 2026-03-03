@@ -9,7 +9,7 @@ export type MainTabParamList = {
   CartTab: undefined;
   FavoritesTab: undefined;
   OrdersTab: undefined;
-  ProfileTab: undefined;
+  ProfileTab: NavigatorScreenParams<ProfileStackParamList> | undefined;
 };
 
 export type HomeStackParamList = {
