@@ -4,6 +4,7 @@ import { Image, Pressable, View } from 'react-native';
 
 import { CartItem, Product } from '../types/models';
 import { getCartLineKey } from '../utils/pricing';
+import { useI18n } from '../contexts/I18nContext';
 import { useTheme } from '../theme/ThemeProvider';
 import { Badge } from './Badge';
 import { IconButton } from './IconButton';
@@ -22,6 +23,7 @@ type Props = {
 
 export function CartItemRow({ item, product, onPressProduct, onQtyChange, onRemove, onSaveForLater }: Props) {
   const theme = useTheme();
+  const { t } = useI18n();
   const lineKey = getCartLineKey(item);
   const outOfStock = product?.stockStatus === 'out_of_stock';
 
@@ -50,7 +52,7 @@ export function CartItemRow({ item, product, onPressProduct, onQtyChange, onRemo
           </Pressable>
           <PriceView price={product?.price ?? 0} oldPrice={product?.oldPrice} size="sm" />
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-            {item.selectedSize ? <Badge label={`Size ${item.selectedSize}`} tone="neutral" /> : null}
+            {item.selectedSize ? <Badge label={t('Size {{value}}', { value: item.selectedSize })} tone="neutral" /> : null}
             {item.selectedColor ? <Badge label={item.selectedColor} tone="neutral" /> : null}
             {outOfStock ? <Badge label="Out of stock" tone="danger" /> : null}
           </View>

@@ -5,6 +5,7 @@ import { PrimaryButton } from '../components/PrimaryButton';
 import { ThemedText } from '../components/ThemedText';
 import { ThemedView } from '../components/ThemedView';
 import { useAuth } from '../contexts/AuthContext';
+import { useI18n } from '../contexts/I18nContext';
 import { useToast } from '../contexts/ToastContext';
 import { useTheme } from '../theme/ThemeProvider';
 import { RootStackParamList } from '../types/navigation';
@@ -15,6 +16,7 @@ import { extractApiErrorMessage } from '../api/auth';
 export function RegisterScreen({ navigation }: NativeStackScreenProps<RootStackParamList, 'Register'>) {
   const theme = useTheme();
   const { register } = useAuth();
+  const { t } = useI18n();
   const { showToast } = useToast();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -36,7 +38,7 @@ export function RegisterScreen({ navigation }: NativeStackScreenProps<RootStackP
         <TextInput
           value={name}
           onChangeText={setName}
-          placeholder="Full name"
+          placeholder={t('Full name')}
           placeholderTextColor={theme.colors.textMuted}
           className="min-h-[46px] rounded-xl border px-3"
           style={inputStyle}
@@ -46,7 +48,7 @@ export function RegisterScreen({ navigation }: NativeStackScreenProps<RootStackP
           onChangeText={setEmail}
           autoCapitalize="none"
           keyboardType="email-address"
-          placeholder="Email"
+          placeholder={t('Email')}
           placeholderTextColor={theme.colors.textMuted}
           className="min-h-[46px] rounded-xl border px-3"
           style={inputStyle}
@@ -55,7 +57,7 @@ export function RegisterScreen({ navigation }: NativeStackScreenProps<RootStackP
           value={password}
           onChangeText={setPassword}
           secureTextEntry
-          placeholder="Password"
+          placeholder={t('Password')}
           placeholderTextColor={theme.colors.textMuted}
           className="min-h-[46px] rounded-xl border px-3"
           style={inputStyle}

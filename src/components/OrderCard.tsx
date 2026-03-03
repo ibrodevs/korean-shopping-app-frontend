@@ -3,6 +3,7 @@ import { Pressable, View } from 'react-native';
 
 import { Order } from '../types/models';
 import { formatDateTime, formatSom } from '../utils/format';
+import { useI18n } from '../contexts/I18nContext';
 import { useTheme } from '../theme/ThemeProvider';
 import { Badge } from './Badge';
 import { ThemedText } from './ThemedText';
@@ -21,6 +22,7 @@ type Props = {
 
 export function OrderCard({ order, onPress }: Props) {
   const theme = useTheme();
+  const { t } = useI18n();
 
   return (
     <Pressable
@@ -43,7 +45,7 @@ export function OrderCard({ order, onPress }: Props) {
         <Badge label={order.status[0].toUpperCase() + order.status.slice(1)} tone={statusToneMap[order.status]} />
       </View>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-        <ThemedText variant="caption">{order.items.length} items</ThemedText>
+        <ThemedText variant="caption">{t('{{count}} items', { count: order.items.length })}</ThemedText>
         <ThemedText variant="caption" style={{ color: theme.colors.text, fontWeight: '700' }}>
           {formatSom(order.total)}
         </ThemedText>

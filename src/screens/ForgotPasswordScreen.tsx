@@ -4,6 +4,7 @@ import { TextInput, View } from 'react-native';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { ThemedText } from '../components/ThemedText';
 import { ThemedView } from '../components/ThemedView';
+import { useI18n } from '../contexts/I18nContext';
 import { useToast } from '../contexts/ToastContext';
 import { useTheme } from '../theme/ThemeProvider';
 import { RootStackParamList } from '../types/navigation';
@@ -12,6 +13,7 @@ import { hapticSelection } from '../utils/haptics';
 
 export function ForgotPasswordScreen({ navigation }: NativeStackScreenProps<RootStackParamList, 'ForgotPassword'>) {
   const theme = useTheme();
+  const { t } = useI18n();
   const { showToast } = useToast();
   const [email, setEmail] = useState('');
 
@@ -26,7 +28,7 @@ export function ForgotPasswordScreen({ navigation }: NativeStackScreenProps<Root
         onChangeText={setEmail}
         autoCapitalize="none"
         keyboardType="email-address"
-        placeholder="Email"
+        placeholder={t('Email')}
         placeholderTextColor={theme.colors.textMuted}
         className="min-h-[46px] rounded-xl border px-3"
         style={{

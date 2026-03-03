@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleProp, Text, TextProps, TextStyle } from 'react-native';
 
+import { useI18n } from '../contexts/I18nContext';
 import { useTheme } from '../theme/ThemeProvider';
 
 type Variant = 'body' | 'muted' | 'title' | 'subtitle' | 'caption' | 'button';
@@ -13,6 +14,7 @@ type Props = TextProps & {
 
 export function ThemedText({ variant = 'body', weight, style, ...props }: Props) {
   const theme = useTheme();
+  const { t } = useI18n();
   const scale = theme.fontScale;
 
   const variantStyle: TextStyle = {
@@ -54,6 +56,13 @@ export function ThemedText({ variant = 'body', weight, style, ...props }: Props)
   return (
     <Text
       {...props}
+      children={
+        typeof props.children === 'string'
+          ? t(props.children)
+          : Array.isArray(props.children)
+            ? props.children.map((child) => (typeof child === 'string' ? t(child) : child))
+            : props.children
+      }
       style={[
         variantStyle,
         weight ? { fontWeight: theme.typography.weights[weight] } : null,

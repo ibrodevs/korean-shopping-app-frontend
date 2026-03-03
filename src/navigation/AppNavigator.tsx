@@ -6,6 +6,7 @@ import React from 'react';
 
 import { useAppState } from '../contexts/AppStateContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useI18n } from '../contexts/I18nContext';
 import { buildNavigationTheme } from '../theme/navigationTheme';
 import { useTheme } from '../theme/ThemeProvider';
 import {
@@ -102,22 +103,23 @@ function OrdersStackNavigator() {
 }
 
 function ProfileStackNavigator() {
+  const { t } = useI18n();
   return (
     <ProfileStack.Navigator screenOptions={{ headerShadowVisible: false }}>
       <ProfileStack.Screen name="Profile" component={ProfileScreen} options={{ headerShown: false }} />
-      <ProfileStack.Screen name="EditProfile" component={EditProfileScreen} options={{ title: 'Edit profile' }} />
-      <ProfileStack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
-      <ProfileStack.Screen name="Payments" component={PaymentsScreen} options={{ title: 'Payments' }} />
+      <ProfileStack.Screen name="EditProfile" component={EditProfileScreen} options={{ title: t('Edit profile') }} />
+      <ProfileStack.Screen name="Settings" component={SettingsScreen} options={{ title: t('Settings') }} />
+      <ProfileStack.Screen name="Payments" component={PaymentsScreen} options={{ title: t('Payments') }} />
       <ProfileStack.Screen
         name="AddCard"
         component={AddCardScreen}
-        options={{ title: 'Add card', presentation: 'modal', headerShadowVisible: false }}
+        options={{ title: t('Add card'), presentation: 'modal', headerShadowVisible: false }}
       />
-      <ProfileStack.Screen name="About" component={AboutScreen} options={{ title: 'About' }} />
-      <ProfileStack.Screen name="FAQ" component={FAQScreen} options={{ title: 'FAQ' }} />
-      <ProfileStack.Screen name="Contact" component={ContactScreen} options={{ title: 'Contact' }} />
-      <ProfileStack.Screen name="Terms" component={TermsScreen} options={{ title: 'Terms of Service' }} />
-      <ProfileStack.Screen name="Privacy" component={PrivacyScreen} options={{ title: 'Privacy Policy' }} />
+      <ProfileStack.Screen name="About" component={AboutScreen} options={{ title: t('About') }} />
+      <ProfileStack.Screen name="FAQ" component={FAQScreen} options={{ title: t('FAQ') }} />
+      <ProfileStack.Screen name="Contact" component={ContactScreen} options={{ title: t('Contact') }} />
+      <ProfileStack.Screen name="Terms" component={TermsScreen} options={{ title: t('Terms of Service') }} />
+      <ProfileStack.Screen name="Privacy" component={PrivacyScreen} options={{ title: t('Privacy Policy') }} />
     </ProfileStack.Navigator>
   );
 }
@@ -132,6 +134,7 @@ function StubStackNavigator({ title }: { title: string }) {
 
 function MainTabsNavigator() {
   const theme = useTheme();
+  const { t } = useI18n();
   const { cartCount, favoriteIds } = useAppState();
 
   return (
@@ -164,26 +167,27 @@ function MainTabsNavigator() {
         },
       })}
     >
-      <Tabs.Screen name="HomeTab" component={HomeStackNavigator} options={{ title: 'Home' }} />
-      <Tabs.Screen name="CatalogTab" component={CatalogStackNavigator} options={{ title: 'Catalog' }} />
+      <Tabs.Screen name="HomeTab" component={HomeStackNavigator} options={{ title: t('Home') }} />
+      <Tabs.Screen name="CatalogTab" component={CatalogStackNavigator} options={{ title: t('Catalog') }} />
       <Tabs.Screen
         name="CartTab"
         component={CartStackNavigator}
-        options={{ title: 'Cart', tabBarBadge: cartCount > 0 ? cartCount : undefined }}
+        options={{ title: t('Cart'), tabBarBadge: cartCount > 0 ? cartCount : undefined }}
       />
       <Tabs.Screen
         name="FavoritesTab"
         component={FavoritesStackNavigator}
-        options={{ title: 'Favorites', tabBarBadge: favoriteIds.length > 0 ? favoriteIds.length : undefined }}
+        options={{ title: t('Favorites'), tabBarBadge: favoriteIds.length > 0 ? favoriteIds.length : undefined }}
       />
-      <Tabs.Screen name="OrdersTab" component={OrdersStackNavigator} options={{ title: 'Orders' }} />
-      <Tabs.Screen name="ProfileTab" component={ProfileStackNavigator} options={{ title: 'Profile' }} />
+      <Tabs.Screen name="OrdersTab" component={OrdersStackNavigator} options={{ title: t('Orders') }} />
+      <Tabs.Screen name="ProfileTab" component={ProfileStackNavigator} options={{ title: t('Profile') }} />
     </Tabs.Navigator>
   );
 }
 
 export function AppNavigator() {
   const theme = useTheme();
+  const { t } = useI18n();
   const { isAuthenticated, isHydrated } = useAuth();
 
   return (
@@ -198,47 +202,47 @@ export function AppNavigator() {
           <RootStack.Screen
             name="Search"
             component={SearchScreen}
-            options={{ title: 'Search', presentation: 'card', headerShadowVisible: false }}
+            options={{ title: t('Search'), presentation: 'card', headerShadowVisible: false }}
           />
           <RootStack.Screen
             name="ProductDetails"
             component={ProductDetailsScreen}
-            options={{ title: 'Product', headerShadowVisible: false }}
+            options={{ title: t('Product'), headerShadowVisible: false }}
           />
           <RootStack.Screen
             name="Checkout"
             component={CheckoutScreen}
-            options={{ title: 'Checkout', headerShadowVisible: false }}
+            options={{ title: t('Checkout'), headerShadowVisible: false }}
           />
           <RootStack.Screen
             name="OrderDetails"
             component={OrderDetailsScreen}
-            options={{ title: 'Order details', headerShadowVisible: false }}
+            options={{ title: t('Order details'), headerShadowVisible: false }}
           />
           <RootStack.Screen
             name="AddressBook"
             component={AddressBookScreen}
-            options={{ title: 'Address book', headerShadowVisible: false }}
+            options={{ title: t('Address book'), headerShadowVisible: false }}
           />
           <RootStack.Screen
             name="PaymentMethod"
             component={PaymentMethodScreen}
-            options={{ title: 'Payment method', headerShadowVisible: false }}
+            options={{ title: t('Payment method'), headerShadowVisible: false }}
           />
           <RootStack.Screen
             name="Success"
             component={SuccessScreen}
-            options={{ title: 'Success', headerShadowVisible: false, gestureEnabled: false }}
+            options={{ title: t('Success'), headerShadowVisible: false, gestureEnabled: false }}
           />
           <RootStack.Screen
             name="FiltersModal"
             component={FiltersModalScreen}
-            options={{ title: 'Filters', presentation: 'modal', headerShadowVisible: false }}
+            options={{ title: t('Filters'), presentation: 'modal', headerShadowVisible: false }}
           />
           <RootStack.Screen
             name="ApplyCouponModal"
             component={ApplyCouponModalScreen}
-            options={{ title: 'Apply Coupon', presentation: 'modal', headerShadowVisible: false }}
+            options={{ title: t('Apply Coupon'), presentation: 'modal', headerShadowVisible: false }}
           />
         </RootStack.Navigator>
       ) : (
@@ -256,22 +260,22 @@ export function AppNavigator() {
           <RootStack.Screen
             name="AuthWelcome"
             component={AuthWelcomeScreen}
-            options={{ title: 'Welcome', headerShadowVisible: false }}
+            options={{ title: t('Welcome'), headerShadowVisible: false }}
           />
           <RootStack.Screen
             name="Login"
             component={LoginScreen}
-            options={{ title: 'Sign In', headerShadowVisible: false }}
+            options={{ title: t('Sign In'), headerShadowVisible: false }}
           />
           <RootStack.Screen
             name="Register"
             component={RegisterScreen}
-            options={{ title: 'Register', headerShadowVisible: false }}
+            options={{ title: t('Register'), headerShadowVisible: false }}
           />
           <RootStack.Screen
             name="ForgotPassword"
             component={ForgotPasswordScreen}
-            options={{ title: 'Forgot Password', headerShadowVisible: false }}
+            options={{ title: t('Forgot Password'), headerShadowVisible: false }}
           />
         </RootStack.Navigator>
       )}

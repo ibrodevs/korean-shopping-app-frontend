@@ -5,6 +5,7 @@ import { KeyboardAvoidingView, Platform, ScrollView, TextInput, View } from 'rea
 import { PrimaryButton } from '../components/PrimaryButton';
 import { ThemedText } from '../components/ThemedText';
 import { ThemedView } from '../components/ThemedView';
+import { useI18n } from '../contexts/I18nContext';
 import { usePaymentCards } from '../contexts/PaymentCardsContext';
 import { useTheme } from '../theme/ThemeProvider';
 import type { ProfileStackParamList } from '../types/navigation';
@@ -29,6 +30,7 @@ function formatExpiry(input: string) {
 
 export function AddCardScreen({ navigation }: Props) {
   const theme = useTheme();
+  const { t } = useI18n();
   const { addCard } = usePaymentCards();
 
   const [cardNumber, setCardNumber] = useState('');
@@ -86,7 +88,7 @@ export function AddCardScreen({ navigation }: Props) {
                 <TextInput
                   value={exp}
                   onChangeText={(t) => setExp(formatExpiry(t))}
-                  placeholder="MM/YY"
+                  placeholder={t('MM/YY')}
                   placeholderTextColor={theme.colors.textMuted}
                   keyboardType="number-pad"
                   style={inputStyle}
@@ -111,7 +113,7 @@ export function AddCardScreen({ navigation }: Props) {
               <TextInput
                 value={holder}
                 onChangeText={setHolder}
-                placeholder="John Doe"
+                placeholder={t('John Doe')}
                 placeholderTextColor={theme.colors.textMuted}
                 autoCapitalize="words"
                 style={inputStyle}

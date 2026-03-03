@@ -5,6 +5,7 @@ import { View } from 'react-native';
 import { APP_STRINGS } from '../constants/strings';
 import { ThemedText } from '../components/ThemedText';
 import { ThemedView } from '../components/ThemedView';
+import { useI18n } from '../contexts/I18nContext';
 import { useTheme } from '../theme/ThemeProvider';
 import { RootStackParamList } from '../types/navigation';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -13,6 +14,7 @@ export function WelcomeIntroScreen({
   navigation,
 }: NativeStackScreenProps<RootStackParamList, 'WelcomeIntro'>) {
   const theme = useTheme();
+  const { t } = useI18n();
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -40,7 +42,7 @@ export function WelcomeIntroScreen({
           <Ionicons name="storefront-outline" size={32} color={theme.colors.primary} />
         </View>
         <ThemedText variant="title" style={{ fontSize: 28, lineHeight: 34, textAlign: 'center' }}>
-          Welcome to {APP_STRINGS.appName}
+          {t('Welcome to {{appName}}', { appName: APP_STRINGS.appName })}
         </ThemedText>
         <ThemedText variant="muted" style={{ textAlign: 'center' }}>
           Discover curated Korean products shipped from Korea to warehouse pickup points in Bishkek.

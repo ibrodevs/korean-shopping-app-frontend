@@ -2,6 +2,7 @@ import React from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, TextInput, View } from 'react-native';
 
+import { useI18n } from '../contexts/I18nContext';
 import { useTheme } from '../theme/ThemeProvider';
 import { ThemedText } from './ThemedText';
 
@@ -27,6 +28,7 @@ export function AppHeader({
   editableSearch = false,
 }: Props) {
   const theme = useTheme();
+  const { t } = useI18n();
 
   return (
     <View style={{ gap: 12 }}>
@@ -61,7 +63,7 @@ export function AppHeader({
             <TextInput
               value={searchValue}
               onChangeText={onChangeSearch}
-              placeholder={searchPlaceholder}
+              placeholder={t(searchPlaceholder)}
               placeholderTextColor={theme.colors.textMuted}
               style={{ flex: 1, color: theme.colors.text, fontSize: 15, paddingVertical: 0 }}
             />

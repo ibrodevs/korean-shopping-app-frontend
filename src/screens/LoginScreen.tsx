@@ -7,6 +7,7 @@ import { PrimaryButton } from '../components/PrimaryButton';
 import { ThemedText } from '../components/ThemedText';
 import { ThemedView } from '../components/ThemedView';
 import { useAuth } from '../contexts/AuthContext';
+import { useI18n } from '../contexts/I18nContext';
 import { useToast } from '../contexts/ToastContext';
 import { useTheme } from '../theme/ThemeProvider';
 import { RootStackParamList } from '../types/navigation';
@@ -19,6 +20,7 @@ WebBrowser.maybeCompleteAuthSession();
 export function LoginScreen({ navigation }: NativeStackScreenProps<RootStackParamList, 'Login'>) {
   const theme = useTheme();
   const { login, loginWithGoogle } = useAuth();
+  const { t } = useI18n();
   const { showToast } = useToast();
   const [email, setEmail] = useState('guest@korean.app');
   const [password, setPassword] = useState('');
@@ -84,7 +86,7 @@ export function LoginScreen({ navigation }: NativeStackScreenProps<RootStackPara
           onChangeText={setEmail}
           autoCapitalize="none"
           keyboardType="email-address"
-          placeholder="Email"
+          placeholder={t('Email')}
           placeholderTextColor={theme.colors.textMuted}
           className="min-h-[46px] rounded-xl border px-3"
           style={inputStyle}
@@ -93,7 +95,7 @@ export function LoginScreen({ navigation }: NativeStackScreenProps<RootStackPara
           value={password}
           onChangeText={setPassword}
           secureTextEntry
-          placeholder="Password"
+          placeholder={t('Password')}
           placeholderTextColor={theme.colors.textMuted}
           className="min-h-[46px] rounded-xl border px-3"
           style={inputStyle}

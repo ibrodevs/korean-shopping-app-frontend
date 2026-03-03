@@ -5,6 +5,7 @@ import { PrimaryButton } from '../components/PrimaryButton';
 import { ThemedText } from '../components/ThemedText';
 import { ThemedView } from '../components/ThemedView';
 import { useAuth } from '../contexts/AuthContext';
+import { useI18n } from '../contexts/I18nContext';
 import { useToast } from '../contexts/ToastContext';
 import { useTheme } from '../theme/ThemeProvider';
 import type { ProfileStackParamList } from '../types/navigation';
@@ -13,6 +14,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 export function EditProfileScreen({ navigation }: NativeStackScreenProps<ProfileStackParamList, 'EditProfile'>) {
   const theme = useTheme();
   const { user, updateProfile } = useAuth();
+  const { t } = useI18n();
   const { showToast } = useToast();
   const [name, setName] = useState(user?.name ?? '');
   const [email, setEmail] = useState(user?.email ?? '');
@@ -39,7 +41,7 @@ export function EditProfileScreen({ navigation }: NativeStackScreenProps<Profile
         <TextInput
           value={name}
           onChangeText={setName}
-          placeholder="Full name"
+          placeholder={t('Full name')}
           placeholderTextColor={theme.colors.textMuted}
           className="min-h-[46px] rounded-xl border px-3"
           style={inputStyle}
@@ -49,7 +51,7 @@ export function EditProfileScreen({ navigation }: NativeStackScreenProps<Profile
           onChangeText={setEmail}
           autoCapitalize="none"
           keyboardType="email-address"
-          placeholder="Email"
+          placeholder={t('Email')}
           placeholderTextColor={theme.colors.textMuted}
           className="min-h-[46px] rounded-xl border px-3"
           style={inputStyle}

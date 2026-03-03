@@ -9,6 +9,7 @@ import { IconButton } from '../components/IconButton';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { ThemedText } from '../components/ThemedText';
 import { ThemedView } from '../components/ThemedView';
+import { useI18n } from '../contexts/I18nContext';
 import { usePaymentCards } from '../contexts/PaymentCardsContext';
 import { useToast } from '../contexts/ToastContext';
 import { useTheme } from '../theme/ThemeProvider';
@@ -32,6 +33,7 @@ function brandLabel(brand: Card['brand']) {
 
 export function PaymentsScreen({ navigation }: Props) {
   const theme = useTheme();
+  const { t } = useI18n();
   const { cards, removeCard, setDefaultCard } = usePaymentCards();
   const { showToast } = useToast();
 
@@ -180,7 +182,7 @@ export function PaymentsScreen({ navigation }: Props) {
 
                   <IconButton
                     icon="trash-outline"
-                    accessibilityLabel={deleteDisabled ? 'Cannot remove the only card' : 'Remove card'}
+                    accessibilityLabel={deleteDisabled ? t('Cannot remove the only card') : t('Remove card')}
                     style={{ opacity: deleteDisabled ? 0.45 : 1 }}
                     onPress={() => {
                       if (deleteDisabled) {

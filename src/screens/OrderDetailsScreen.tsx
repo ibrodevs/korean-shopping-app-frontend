@@ -8,6 +8,7 @@ import { StatusTimeline } from '../components/StatusTimeline';
 import { ThemedText } from '../components/ThemedText';
 import { ThemedView } from '../components/ThemedView';
 import { useAppState } from '../contexts/AppStateContext';
+import { useI18n } from '../contexts/I18nContext';
 import { useOrders } from '../contexts/OrdersContext';
 import { products } from '../data/mockData';
 import { useTheme } from '../theme/ThemeProvider';
@@ -17,6 +18,7 @@ import { formatDateTime, formatSom } from '../utils/format';
 
 export function OrderDetailsScreen({ route, navigation }: NativeStackScreenProps<RootStackParamList, 'OrderDetails'>) {
   const theme = useTheme();
+  const { t } = useI18n();
   const [showReviewModal, setShowReviewModal] = useState(false);
   const { getOrderById } = useOrders();
   const { addManyToCart } = useAppState();
@@ -77,8 +79,8 @@ export function OrderDetailsScreen({ route, navigation }: NativeStackScreenProps
                 />
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 4 }}>
                   <ThemedText variant="caption">
-                    Qty {line.qty}
-                    {line.selectedSize ? ` • Size ${line.selectedSize}` : ''}
+                    {t('Qty {{qty}}', { qty: line.qty })}
+                    {line.selectedSize ? ` • ${t('Size {{value}}', { value: line.selectedSize })}` : ''}
                     {line.selectedColor ? ` • ${line.selectedColor}` : ''}
                   </ThemedText>
                   <ThemedText variant="caption">{formatSom(line.price * line.qty)}</ThemedText>

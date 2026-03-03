@@ -5,6 +5,7 @@ import { PrimaryButton } from '../components/PrimaryButton';
 import { ThemedText } from '../components/ThemedText';
 import { ThemedView } from '../components/ThemedView';
 import { useAppState } from '../contexts/AppStateContext';
+import { useI18n } from '../contexts/I18nContext';
 import { useOrders } from '../contexts/OrdersContext';
 import { useToast } from '../contexts/ToastContext';
 import { products } from '../data/mockData';
@@ -23,6 +24,7 @@ const arrivalSlots = [
 
 export function CheckoutScreen({ navigation }: NativeStackScreenProps<RootStackParamList, 'Checkout'>) {
   const theme = useTheme();
+  const { t } = useI18n();
   const [placingOrder, setPlacingOrder] = useState(false);
   const {
     cartItems,
@@ -132,11 +134,11 @@ export function CheckoutScreen({ navigation }: NativeStackScreenProps<RootStackP
                   <ThemedText variant="caption">{product?.brand}</ThemedText>
                   <ThemedText numberOfLines={1}>{product?.title ?? 'Unavailable product'}</ThemedText>
                 </View>
-                <ThemedText variant="caption">x{item.qty}</ThemedText>
+                <ThemedText variant="caption">{t('x{{qty}}', { qty: item.qty })}</ThemedText>
               </View>
             ))}
             {resolvedRows.length > 3 ? (
-              <ThemedText variant="caption">+{resolvedRows.length - 3} more items</ThemedText>
+              <ThemedText variant="caption">{t('+{{count}} more items', { count: resolvedRows.length - 3 })}</ThemedText>
             ) : null}
           </View>
         </Section>

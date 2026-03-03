@@ -8,6 +8,7 @@ import { Text, TextInput } from 'react-native';
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { AppStateProvider } from './src/contexts/AppStateContext';
 import { AuthProvider } from './src/contexts/AuthContext';
+import { I18nProvider } from './src/contexts/I18nContext';
 import { OrdersProvider } from './src/contexts/OrdersContext';
 import { PaymentCardsProvider } from './src/contexts/PaymentCardsContext';
 import { ToastProvider } from './src/contexts/ToastContext';
@@ -49,7 +50,9 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <ThemeProvider>
-          <AppContent />
+          <I18nProvider>
+            <AppContent />
+          </I18nProvider>
         </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

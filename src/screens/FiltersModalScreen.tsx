@@ -5,6 +5,7 @@ import { PrimaryButton } from '../components/PrimaryButton';
 import { ThemedText } from '../components/ThemedText';
 import { ThemedView } from '../components/ThemedView';
 import { useAppState } from '../contexts/AppStateContext';
+import { useI18n } from '../contexts/I18nContext';
 import { products } from '../data/mockData';
 import { useTheme } from '../theme/ThemeProvider';
 import { RootStackParamList } from '../types/navigation';
@@ -13,6 +14,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 export function FiltersModalScreen({ navigation }: NativeStackScreenProps<RootStackParamList, 'FiltersModal'>) {
   const theme = useTheme();
+  const { t } = useI18n();
   const { catalogFilters, setCatalogFilters, resetCatalogFilters } = useAppState();
   const [draft, setDraft] = useState<CatalogFilters>(catalogFilters);
 
@@ -62,7 +64,7 @@ export function FiltersModalScreen({ navigation }: NativeStackScreenProps<RootSt
               value={draft.minPrice}
               onChangeText={(minPrice) => setDraft((prev) => ({ ...prev, minPrice }))}
               keyboardType="number-pad"
-              placeholder="Min"
+              placeholder={t('Min')}
               placeholderTextColor={theme.colors.textMuted}
               style={inputStyle}
             />
@@ -70,7 +72,7 @@ export function FiltersModalScreen({ navigation }: NativeStackScreenProps<RootSt
               value={draft.maxPrice}
               onChangeText={(maxPrice) => setDraft((prev) => ({ ...prev, maxPrice }))}
               keyboardType="number-pad"
-              placeholder="Max"
+              placeholder={t('Max')}
               placeholderTextColor={theme.colors.textMuted}
               style={inputStyle}
             />

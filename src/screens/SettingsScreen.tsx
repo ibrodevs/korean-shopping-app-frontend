@@ -6,12 +6,14 @@ import { Pressable, ScrollView, Switch, View } from 'react-native';
 import { APP_STRINGS } from '../constants/strings';
 import { ThemedText } from '../components/ThemedText';
 import { ThemedView } from '../components/ThemedView';
+import { useI18n } from '../contexts/I18nContext';
 import { useTheme } from '../theme/ThemeProvider';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { ProfileStackParamList } from '../types/navigation';
 
 export function SettingsScreen({ navigation }: NativeStackScreenProps<ProfileStackParamList, 'Settings'>) {
   const theme = useTheme();
+  const { language, setLanguage } = useI18n();
   const appVersion = Constants.expoConfig?.version ?? APP_STRINGS.version;
 
   const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
@@ -92,6 +94,19 @@ export function SettingsScreen({ navigation }: NativeStackScreenProps<ProfileSta
               { label: 'System', value: 'system' },
               { label: 'Light', value: 'light' },
               { label: 'Dark', value: 'dark' },
+            ]}
+          />
+        </Section>
+
+        <Section title="Language">
+          <ThemedText variant="caption">Language</ThemedText>
+          <Segmented
+            value={language}
+            onChange={setLanguage}
+            options={[
+              { label: 'English', value: 'en' },
+              { label: 'Russian', value: 'ru' },
+              { label: 'Kyrgyz', value: 'ky' },
             ]}
           />
         </Section>
