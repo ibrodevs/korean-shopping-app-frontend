@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { FlatList, Image, Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -15,10 +15,14 @@ import { useAppState } from '../contexts/AppStateContext';
 import { useToast } from '../contexts/ToastContext';
 import { products } from '../data/mockData';
 import { getProductById } from '../data/selectors';
+import { getProductDetail } from '../api/catalog';
+import { mapBackendProductDetailToUiProduct } from '../api/adapters';
+import { extractApiErrorMessage } from '../api/client';
 import { useTheme } from '../theme/ThemeProvider';
 import { RootStackParamList } from '../types/navigation';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { hapticSelection } from '../utils/haptics';
+import { Product } from '../types/models';
 
 const SIZES = ['S', 'M', 'L'];
 const COLORS = ['Ivory', 'Mint', 'Black'];
@@ -28,16 +32,64 @@ export function ProductDetailsScreen({ route }: NativeStackScreenProps<RootStack
   const { width } = useWindowDimensions();
   const { addToCart, isFavorite, toggleFavorite } = useAppState();
   const { showToast } = useToast();
-  const product = getProductById(route.params.productId);
+  const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [selectedSize, setSelectedSize] = useState<string>('M');
   const [selectedColor, setSelectedColor] = useState<string>('Ivory');
   const [imageIndex, setImageIndex] = useState(0);
   const [justAdded, setJustAdded] = useState(false);
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        setLoading(true);
+        setErrorMessage(null);
+        const detail = await getProductDetail(route.params.productId, { lang: 'ru' });
+        const ui = mapBackendProductDetailToUiProduct({ item: detail });
+        if (cancelled) return;
+        setProduct(ui);
+      } catch (e) {
+        const fallback = getProductById(route.params.productId);
+        if (cancelled) return;
+        if (fallback) {
+          setProduct(fallback);
+          setErrorMessage(null);
+        } else {
+          setErrorMessage(extractApiErrorMessage(e));
+          setProduct(null);
+        }
+      } finally {
+        if (cancelled) return;
+        setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [route.params.productId]);
+
   const recommendations = useMemo(
     () => products.filter((p) => p.id !== route.params.productId).slice(0, 4),
     [route.params.productId],
   );
+
+  if (loading) {
+    return (
+      <ThemedView style={{ flex: 1 }}>
+        <SafeAreaView>
+          <View style={{ padding: 16, gap: 8 }}>
+            <ThemedText variant="subtitle">Loading product…</ThemedText>
+            <ThemedText variant="caption" style={{ color: theme.colors.textMuted }}>
+              Please wait
+            </ThemedText>
+          </View>
+        </SafeAreaView>
+      </ThemedView>
+    );
+  }
 
   if (!product) {
     return (
@@ -45,6 +97,11 @@ export function ProductDetailsScreen({ route }: NativeStackScreenProps<RootStack
         <SafeAreaView>
           <View style={{ padding: 16 }}>
             <ThemedText variant="subtitle">Product not found</ThemedText>
+            {errorMessage ? (
+              <ThemedText variant="caption" style={{ color: theme.colors.textMuted, marginTop: 8 }}>
+                {errorMessage}
+              </ThemedText>
+            ) : null}
           </View>
         </SafeAreaView>
       </ThemedView>

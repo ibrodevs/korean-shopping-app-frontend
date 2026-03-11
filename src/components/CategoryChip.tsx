@@ -19,11 +19,12 @@ export function CategoryChip({ category, active = false, onPress }: Props) {
     <Pressable
       onPress={onPress}
       style={({ pressed }) => ({
+        alignSelf: 'center',
         flexDirection: 'row',
         alignItems: 'center',
         gap: 8,
-        paddingHorizontal: 12,
-        paddingVertical: 10,
+        paddingHorizontal: 10,
+        paddingVertical: 8,
         borderRadius: 999,
         borderWidth: 1,
         borderColor: active ? 'transparent' : theme.colors.border,

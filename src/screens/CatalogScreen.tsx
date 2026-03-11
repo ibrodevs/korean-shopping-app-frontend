@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { FlatList, Pressable, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -9,10 +9,19 @@ import { ProductCard } from '../components/ProductCard';
 import { ThemedText } from '../components/ThemedText';
 import { ThemedView } from '../components/ThemedView';
 import { useAppState } from '../contexts/AppStateContext';
-import { categories, products } from '../data/mockData';
+import { getAllBrands, getCategoryTree, getProducts } from '../api/catalog';
+import {
+  buildBrandIdToNameMap,
+  buildCategoryIdToSlugMap,
+  flattenCategoryTree,
+  mapBackendCategoryToUiCategory,
+  mapBackendProductListItemToUiProduct,
+} from '../api/adapters';
 import { useTheme } from '../theme/ThemeProvider';
 import { CatalogScreenProps } from '../types/navigation';
 import { CatalogSortOption } from '../types/ui';
+import { Category, Product } from '../types/models';
+import { extractApiErrorMessage } from '../api/client';
 
 const sortLabels: Record<CatalogSortOption, string> = {
   popular: 'Popularity',
@@ -33,27 +42,103 @@ export function CatalogScreen({ navigation }: CatalogScreenProps) {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
 
+  const [uiCategories, setUiCategories] = useState<Category[]>([]);
+  const [categoryIdToSlug, setCategoryIdToSlug] = useState<Map<number, string> | null>(null);
+  const [brandIdToName, setBrandIdToName] = useState<Map<number, string> | null>(null);
+
+  const [productsFromApi, setProductsFromApi] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        setErrorMessage(null);
+        const tree = await getCategoryTree({ lang: 'ru' });
+        const flat = flattenCategoryTree(tree);
+        const ui = flat.map(mapBackendCategoryToUiCategory);
+        const map = buildCategoryIdToSlugMap(tree);
+
+        // Brands are optional; if backend doesn't include brand_name, this map helps.
+        // We intentionally keep this lightweight and resilient.
+        const brands = await getAllBrands({ lang: 'ru', limit: 100 });
+        const brandMap = buildBrandIdToNameMap(brands);
+
+        if (cancelled) return;
+        setUiCategories(ui);
+        setCategoryIdToSlug(map);
+        setBrandIdToName(brandMap);
+      } catch (e) {
+        if (cancelled) return;
+        setErrorMessage(extractApiErrorMessage(e));
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const timeout = setTimeout(() => {
+      (async () => {
+        try {
+          setLoading(true);
+          setErrorMessage(null);
+
+          const ordering =
+            catalogSort === 'newest'
+              ? '-created_at'
+              : catalogSort === 'price_asc'
+                ? 'min_price'
+                : catalogSort === 'price_desc'
+                  ? '-min_price'
+                  : '-created_at';
+
+          const page = await getProducts({
+            lang: 'ru',
+            limit: 100,
+            offset: 0,
+            search: query.trim() || undefined,
+            category: selectedCategoryId || undefined,
+            priceMin: catalogFilters.minPrice.trim() || undefined,
+            priceMax: catalogFilters.maxPrice.trim() || undefined,
+            ordering,
+          });
+
+          const mapped = page.results.map((item) =>
+            mapBackendProductListItemToUiProduct({
+              item,
+              categoryIdToSlug: categoryIdToSlug ?? undefined,
+              brandIdToName: brandIdToName ?? undefined,
+            }),
+          );
+
+          if (cancelled) return;
+          setProductsFromApi(mapped);
+        } catch (e) {
+          if (cancelled) return;
+          setErrorMessage(extractApiErrorMessage(e));
+        } finally {
+          if (cancelled) return;
+          setLoading(false);
+        }
+      })();
+    }, 250);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timeout);
+    };
+  }, [brandIdToName, catalogFilters, catalogSort, categoryIdToSlug, query, selectedCategoryId]);
+
   const filteredProducts = useMemo(() => {
-    let result = products;
+    let result = productsFromApi;
 
-    if (selectedCategoryId) {
-      result = result.filter((p) => p.categoryId === selectedCategoryId);
-    }
+    // Category/search/price are already applied via API.
 
-    if (query.trim()) {
-      const q = query.toLowerCase();
-      result = result.filter(
-        (p) =>
-          p.title.toLowerCase().includes(q) ||
-          p.brand.toLowerCase().includes(q) ||
-          p.tags.some((tag) => tag.toLowerCase().includes(q)),
-      );
-    }
-
-    const minPrice = Number(catalogFilters.minPrice || 0);
-    const maxPrice = Number(catalogFilters.maxPrice || 0);
-    if (catalogFilters.minPrice.trim()) result = result.filter((p) => p.price >= minPrice);
-    if (catalogFilters.maxPrice.trim()) result = result.filter((p) => p.price <= maxPrice);
+    // Keep UI-only filters (sale/stock/tags/rating) local.
     if (catalogFilters.ratingMin > 0) result = result.filter((p) => p.rating >= catalogFilters.ratingMin);
     if (catalogFilters.tags.length) {
       result = result.filter((p) => catalogFilters.tags.every((tag) => p.tags.includes(tag)));
@@ -65,11 +150,9 @@ export function CatalogScreen({ navigation }: CatalogScreenProps) {
       result = result.filter((p) => p.isSale);
     }
 
-    if (catalogSort === 'price_asc') return [...result].sort((a, b) => a.price - b.price);
-    if (catalogSort === 'price_desc') return [...result].sort((a, b) => b.price - a.price);
-    if (catalogSort === 'newest') return [...result].sort((a, b) => Number(b.isNew) - Number(a.isNew));
-    return [...result].sort((a, b) => (b.rating * b.reviewCount) - (a.rating * a.reviewCount));
-  }, [catalogFilters, catalogSort, query, selectedCategoryId]);
+    // Sorting is handled by API ordering.
+    return result;
+  }, [catalogFilters, productsFromApi]);
 
   const appliedFilterPills = useMemo(() => {
     const pills: string[] = [];
@@ -88,7 +171,7 @@ export function CatalogScreen({ navigation }: CatalogScreenProps) {
   return (
     <ThemedView style={{ flex: 1 }}>
       <SafeAreaView edges={['top']} style={{ flex: 1 }}>
-        <View style={{ flex: 1, paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.md, gap: 14 }}>
+        <View style={{ flex: 1, paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.md, gap: 12 }}>
           <AppHeader
             title="Catalog"
             subtitle="Browse curated Korean products"
@@ -99,11 +182,12 @@ export function CatalogScreen({ navigation }: CatalogScreenProps) {
           />
 
           <FlatList
-            data={[{ id: 'all', title: 'All', iconName: 'apps-outline' }, ...categories]}
+            data={[{ id: 'all', title: 'All', iconName: 'apps-outline' }, ...uiCategories]}
             keyExtractor={(item) => item.id}
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: 8 }}
+            style={{ maxHeight: 44 }}
+            contentContainerStyle={{ gap: 8, alignItems: 'center', paddingVertical: 2 }}
             renderItem={({ item }) => (
               <CategoryChip
                 category={item}
@@ -119,7 +203,8 @@ export function CatalogScreen({ navigation }: CatalogScreenProps) {
               keyExtractor={(item, index) => `${item}-${index}`}
               horizontal
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ gap: 8 }}
+              style={{ maxHeight: 40 }}
+              contentContainerStyle={{ gap: 8, alignItems: 'center', paddingVertical: 2 }}
               renderItem={({ item }) => (
                 <View style={{ paddingHorizontal: 10, paddingVertical: 7, borderRadius: 999, backgroundColor: theme.colors.primarySoft, borderWidth: 1, borderColor: theme.colors.border }}>
                   <ThemedText variant="caption" style={{ color: theme.colors.text, fontWeight: '700' }}>{item}</ThemedText>
@@ -166,6 +251,22 @@ export function CatalogScreen({ navigation }: CatalogScreenProps) {
             <ThemedText variant="caption">{filteredProducts.length} items</ThemedText>
           </View>
 
+          {errorMessage ? (
+            <View
+              style={{
+                padding: 12,
+                borderRadius: theme.radii.lg,
+                borderWidth: 1,
+                borderColor: theme.colors.border,
+                backgroundColor: theme.colors.surface,
+              }}
+            >
+              <ThemedText variant="caption" style={{ color: theme.colors.text }}>
+                {errorMessage}
+              </ThemedText>
+            </View>
+          ) : null}
+
           <FlatList
             data={filteredProducts}
             keyExtractor={(item) => item.id}
@@ -196,7 +297,7 @@ export function CatalogScreen({ navigation }: CatalogScreenProps) {
                 }}
               >
                 <ThemedText variant="caption" style={{ textAlign: 'center' }}>
-                  End of demo list. In production, this area would load more items.
+                  {loading ? 'Loading products…' : 'End of list.'}
                 </ThemedText>
               </View>
             }
