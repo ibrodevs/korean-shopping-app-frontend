@@ -13,7 +13,6 @@ import { getAllBrands, getCategoryTree, getProducts } from '../api/catalog';
 import {
   buildBrandIdToNameMap,
   buildCategoryIdToSlugMap,
-  flattenCategoryTree,
   mapBackendCategoryToUiCategory,
   mapBackendProductListItemToUiProduct,
 } from '../api/adapters';
@@ -56,8 +55,8 @@ export function CatalogScreen({ navigation }: CatalogScreenProps) {
       try {
         setErrorMessage(null);
         const tree = await getCategoryTree({ lang: 'ru' });
-        const flat = flattenCategoryTree(tree);
-        const ui = flat.map(mapBackendCategoryToUiCategory);
+        // Show only top-level categories in the UI (parent categories).
+        const ui = tree.map(mapBackendCategoryToUiCategory);
         const map = buildCategoryIdToSlugMap(tree);
 
         // Brands are optional; if backend doesn't include brand_name, this map helps.

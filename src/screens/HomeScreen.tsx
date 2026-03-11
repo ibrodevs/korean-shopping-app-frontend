@@ -1,5 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { FlatList, Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -8,13 +8,61 @@ import { CategoryCard } from '../components/CategoryCard';
 import { ProductCard } from '../components/ProductCard';
 import { ThemedText } from '../components/ThemedText';
 import { ThemedView } from '../components/ThemedView';
-import { categories } from '../data/mockData';
-import { hotDeals, newArrivals } from '../data/selectors';
+import { getCategoryTree, getProducts } from '../api/catalog';
+import { mapBackendCategoryToUiCategory, mapBackendProductListItemToUiProduct } from '../api/adapters';
 import { useTheme } from '../theme/ThemeProvider';
 import { HomeScreenProps } from '../types/navigation';
+import { Category, Product } from '../types/models';
 
 export function HomeScreen({ navigation }: HomeScreenProps) {
   const theme = useTheme();
+
+  const [apiCategories, setApiCategories] = useState<Category[] | null>(null);
+  const [apiProducts, setApiProducts] = useState<Product[] | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const tree = await getCategoryTree({ lang: 'ru' });
+        // Root nodes are the parent categories.
+        const ui = tree.map(mapBackendCategoryToUiCategory);
+        if (cancelled) return;
+        setApiCategories(ui);
+      } catch (e) {
+        if (cancelled) return;
+        setApiCategories([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        // One call is enough; backend already includes brand_name/category_slug.
+        const page = await getProducts({ lang: 'ru', limit: 30, offset: 0, ordering: '-created_at' });
+        const mapped = page.results.map((item) => mapBackendProductListItemToUiProduct({ item }));
+        if (cancelled) return;
+        setApiProducts(mapped);
+      } catch (e) {
+        if (cancelled) return;
+        setApiProducts([]);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const categoriesToRender = apiCategories ?? [];
+  const productsToRender = apiProducts ?? [];
+  const hotDeals = productsToRender.slice(0, 10);
+  const newArrivals = productsToRender.slice(10, 16);
 
   return (
     <ThemedView style={{ flex: 1 }}>
@@ -72,7 +120,7 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
                 </Pressable>
               </View>
               <FlatList
-                data={categories}
+                data={categoriesToRender}
                 keyExtractor={(item) => item.id}
                 horizontal
                 showsHorizontalScrollIndicator={false}

@@ -71,7 +71,12 @@ export function withBaseUrl(urlOrPath: string | null | undefined): string | null
 
 export async function getCategoryTree(params?: { lang?: string }): Promise<BackendCategoryNode[]> {
   const lang = params?.lang ?? 'ru';
-  return requestJson<BackendCategoryNode[]>(`/api/v1/categories/?lang=${encodeURIComponent(lang)}`);
+  const data = await requestJson<BackendCategoryNode[] | BackendPaginated<BackendCategoryNode>>(
+    `/api/v1/categories/?lang=${encodeURIComponent(lang)}`,
+  );
+
+  // Backend may return either a plain list or a paginated object with `results`.
+  return Array.isArray(data) ? data : data.results;
 }
 
 export async function getBrands(params?: { lang?: string; limit?: number; offset?: number }): Promise<BackendPaginated<BackendBrand>> {
