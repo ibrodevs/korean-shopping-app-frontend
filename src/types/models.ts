@@ -29,6 +29,8 @@ export interface CartItem {
   selectedColor?: string;
 }
 
+export type CheckoutPaymentMethod = 'cash' | 'card' | 'mbank' | 'elqr';
+
 export interface OrderLineItem {
   id?: string;
   productId?: string;
@@ -48,6 +50,7 @@ export interface Order {
   totalItems?: number;
   total: number;
   status: 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  backendStatus?: string;
   createdAt: string;
   discount?: number;
   deliveryFee?: number;
@@ -55,4 +58,13 @@ export interface Order {
   paymentStatus?: string;
   paymentMethod?: string;
   deliveryMethod?: string;
+  customerEmail?: string;
+  customerPhone?: string;
+  fullName?: string;
+  fullAddress?: string;
+  deliveryComment?: string;
+  pickupLocationName?: string;
+  pickupCity?: string;
+  pickupAddress?: string;
+  canCancel?: boolean;
 }

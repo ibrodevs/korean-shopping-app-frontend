@@ -7,18 +7,43 @@ import { StatusTimeline } from '../components/StatusTimeline';
 import { ThemedText } from '../components/ThemedText';
 import { ThemedView } from '../components/ThemedView';
 import { useI18n } from '../contexts/I18nContext';
+import { useToast } from '../contexts/ToastContext';
 import { useOrders } from '../contexts/OrdersContext';
 import { useTheme } from '../theme/ThemeProvider';
 import { RootStackParamList } from '../types/navigation';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { formatDateTime, formatSom } from '../utils/format';
+import { extractApiErrorMessage } from '../api/client';
+
+function formatDeliveryMethod(value?: string): string {
+  if (value === 'pickup') return 'Self-pickup';
+  if (value === 'courier') return 'Courier delivery';
+  return value || 'Unknown';
+}
+
+function formatPaymentMethod(value?: string): string {
+  switch (value) {
+    case 'cash':
+      return 'Cash on pickup';
+    case 'card':
+      return 'Bank card';
+    case 'mbank':
+      return 'MBank';
+    case 'elqr':
+      return 'ELQR';
+    default:
+      return value || 'Unknown';
+  }
+}
 
 export function OrderDetailsScreen({ route, navigation }: NativeStackScreenProps<RootStackParamList, 'OrderDetails'>) {
   const theme = useTheme();
   const { t } = useI18n();
   const [showReviewModal, setShowReviewModal] = useState(false);
-  const { getOrderById, getOrderDetail } = useOrders();
+  const { getOrderById, getOrderDetail, cancelOrder } = useOrders();
+  const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const cached = getOrderById(route.params.orderId);
@@ -93,9 +118,24 @@ export function OrderDetailsScreen({ route, navigation }: NativeStackScreenProps
         </View>
 
         <View style={{ gap: 8, borderRadius: theme.radii.lg, borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.surface, padding: 12 }}>
-          <ThemedText variant="subtitle" style={{ fontSize: 16 }}>Pickup warehouse</ThemedText>
-          <ThemedText weight="semibold">Bishkek Warehouse #1</ThemedText>
-          <ThemedText variant="muted">115 Chui Ave, Bishkek • Main pickup desk • +996 555 102 030</ThemedText>
+          <ThemedText variant="subtitle" style={{ fontSize: 16 }}>
+            {order.deliveryMethod === 'pickup' ? 'Pickup location' : 'Delivery address'}
+          </ThemedText>
+          <ThemedText weight="semibold">
+            {order.deliveryMethod === 'pickup'
+              ? order.pickupLocationName || 'Pickup point'
+              : order.fullName || 'Recipient'}
+          </ThemedText>
+          <ThemedText variant="muted">
+            {order.deliveryMethod === 'pickup'
+              ? [order.pickupAddress, order.pickupCity].filter(Boolean).join(', ')
+              : order.fullAddress || 'Address unavailable'}
+          </ThemedText>
+          <ThemedText variant="caption">
+            {formatDeliveryMethod(order.deliveryMethod)} • {formatPaymentMethod(order.paymentMethod)}
+          </ThemedText>
+          {order.customerPhone ? <ThemedText variant="caption">{order.customerPhone}</ThemedText> : null}
+          {order.deliveryComment ? <ThemedText variant="caption">Comment: {order.deliveryComment}</ThemedText> : null}
         </View>
 
         <View style={{ gap: 10 }}>
@@ -151,6 +191,35 @@ export function OrderDetailsScreen({ route, navigation }: NativeStackScreenProps
             navigation.navigate('MainTabs', { screen: 'CartTab' });
           }}
         />
+
+        {order.canCancel ? (
+          <PrimaryButton
+            label="Cancel order"
+            variant="outline"
+            loading={cancelling}
+            onPress={async () => {
+              try {
+                setCancelling(true);
+                setErrorMessage(null);
+                const updated = await cancelOrder(order.id);
+                setOrder(updated);
+                showToast('Order canceled', 'success');
+              } catch (error) {
+                const message = extractApiErrorMessage(error);
+                setErrorMessage(message);
+                showToast(message, 'warning');
+              } finally {
+                setCancelling(false);
+              }
+            }}
+          />
+        ) : null}
+
+        {errorMessage ? (
+          <ThemedText variant="caption" style={{ color: theme.colors.danger }}>
+            {errorMessage}
+          </ThemedText>
+        ) : null}
 
         {order.status === 'delivered' ? (
           <PrimaryButton label="Leave a review" variant="outline" onPress={() => setShowReviewModal(true)} />

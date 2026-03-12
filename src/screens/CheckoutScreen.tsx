@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 
 import { PrimaryButton } from '../components/PrimaryButton';
@@ -17,9 +17,10 @@ import { hapticSuccess, hapticWarning } from '../utils/haptics';
 import { calcDelivery, calcDiscount, calcSubtotal, calcTotal } from '../utils/pricing';
 import { extractApiErrorMessage } from '../api/client';
 import { bulkAddToCart, clearCart as clearBackendCart } from '../api/cart';
-import { checkoutOrderFromCart } from '../api/orders';
+import { BackendPickupLocation, checkoutOrderFromCart, listPickupLocations } from '../api/orders';
 import { useUiProductsBySlugs } from '../hooks/useUiProductsBySlugs';
 import { getBackendProductDetailCached } from '../api/productDetailsCache';
+import { CheckoutPaymentMethod } from '../types/models';
 
 const arrivalSlots = [
   'Next arrival: Mon, 18:00 - 21:00',
@@ -27,13 +28,34 @@ const arrivalSlots = [
   'Next arrival: Wed, 18:00 - 21:00',
 ];
 
+function formatPickupLocationDetail(location: BackendPickupLocation): string {
+  return [location.address, location.address_line2, location.city, location.phone].filter(Boolean).join(' • ');
+}
+
+function formatPaymentMethodLabel(method: CheckoutPaymentMethod): string {
+  switch (method) {
+    case 'card':
+      return 'Bank card';
+    case 'mbank':
+      return 'MBank';
+    case 'elqr':
+      return 'ELQR';
+    case 'cash':
+    default:
+      return 'Cash on pickup';
+  }
+}
+
 export function CheckoutScreen({ navigation }: NativeStackScreenProps<RootStackParamList, 'Checkout'>) {
   const theme = useTheme();
   const { t } = useI18n();
   const [placingOrder, setPlacingOrder] = useState(false);
+  const [pickupLocationsLoading, setPickupLocationsLoading] = useState(false);
+  const [pickupLocationsError, setPickupLocationsError] = useState<string | null>(null);
   const {
     cartItems,
     checkoutDraft,
+    setCheckoutAddress,
     setCheckoutDeliveryTime,
     clearCart,
     resetCheckoutDraft,
@@ -56,7 +78,63 @@ export function CheckoutScreen({ navigation }: NativeStackScreenProps<RootStackP
   const delivery = calcDelivery(subtotal);
   const total = calcTotal(subtotal, discount, delivery);
   const hasOutOfStock = resolvedRows.some((row) => row.product?.stockStatus === 'out_of_stock');
-  const canPlace = cartItems.length > 0 && !hasOutOfStock && !placingOrder;
+  const hasPickupSelection = checkoutDraft.pickupLocationId !== null;
+  const canPlace = cartItems.length > 0 && !hasOutOfStock && !placingOrder && hasPickupSelection && !pickupLocationsLoading;
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setPickupLocationsError(null);
+      setPickupLocationsLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        setPickupLocationsLoading(true);
+        setPickupLocationsError(null);
+
+        const locations = await listPickupLocations(requestAuthorizedJson);
+        if (cancelled) return;
+
+        if (!locations.length) {
+          setPickupLocationsError('No active pickup locations are available right now.');
+          return;
+        }
+
+        const selected = checkoutDraft.pickupLocationId
+          ? locations.find((location) => location.id === checkoutDraft.pickupLocationId)
+          : null;
+        const nextLocation = selected ?? locations[0];
+        const nextDetail = formatPickupLocationDetail(nextLocation);
+
+        if (
+          checkoutDraft.pickupLocationId !== nextLocation.id ||
+          checkoutDraft.addressLabel !== nextLocation.name ||
+          checkoutDraft.addressDetail !== nextDetail
+        ) {
+          setCheckoutAddress(nextLocation.name, nextDetail, nextLocation.id);
+        }
+      } catch (error) {
+        if (cancelled) return;
+        setPickupLocationsError(extractApiErrorMessage(error));
+      } finally {
+        if (!cancelled) setPickupLocationsLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    checkoutDraft.addressDetail,
+    checkoutDraft.addressLabel,
+    checkoutDraft.pickupLocationId,
+    isAuthenticated,
+    requestAuthorizedJson,
+    setCheckoutAddress,
+  ]);
 
   const resolveDefaultVariantIds = async () => {
     const uniqueSlugs = Array.from(new Set(cartItems.map((x) => x.productId)));
@@ -79,14 +157,6 @@ export function CheckoutScreen({ navigation }: NativeStackScreenProps<RootStackP
     }
 
     return Array.from(variantIdToQty.entries()).map(([variant_id, quantity]) => ({ variant_id, quantity }));
-  };
-
-  const inferPaymentMethod = (): 'cash' | 'card' | 'mbank' | 'elqr' => {
-    const raw = (checkoutDraft.paymentMethod || '').toLowerCase();
-    if (raw.includes('mbank')) return 'mbank';
-    if (raw.includes('elqr') || raw.includes('qr')) return 'elqr';
-    if (raw.includes('visa') || raw.includes('master') || raw.includes('card')) return 'card';
-    return 'cash';
   };
 
   const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
@@ -124,9 +194,14 @@ export function CheckoutScreen({ navigation }: NativeStackScreenProps<RootStackP
         <Section title="Pickup warehouse">
           <NavRow
             label={checkoutDraft.addressLabel}
-            value={checkoutDraft.addressDetail}
+            value={pickupLocationsLoading ? 'Loading active pickup locations...' : checkoutDraft.addressDetail}
             onPress={() => navigation.navigate('AddressBook')}
           />
+          {pickupLocationsError ? (
+            <ThemedText variant="caption" style={{ color: theme.colors.danger }}>
+              {pickupLocationsError}
+            </ThemedText>
+          ) : null}
         </Section>
 
         <Section title="Expected arrival window">
@@ -157,13 +232,8 @@ export function CheckoutScreen({ navigation }: NativeStackScreenProps<RootStackP
         <Section title="Payment method">
           <NavRow
             label="Selected"
-            value={checkoutDraft.paymentMethod}
-            onPress={() =>
-              navigation.navigate('MainTabs', {
-                screen: 'ProfileTab',
-                params: { screen: 'Payments' },
-              })
-            }
+            value={formatPaymentMethodLabel(checkoutDraft.paymentMethod)}
+            onPress={() => navigation.navigate('PaymentMethod')}
           />
         </Section>
 
@@ -224,13 +294,21 @@ export function CheckoutScreen({ navigation }: NativeStackScreenProps<RootStackP
               Remove out-of-stock items from cart before placing an order.
             </ThemedText>
           ) : null}
+          {!pickupLocationsLoading && !hasPickupSelection ? (
+            <ThemedText variant="caption" style={{ color: theme.colors.danger }}>
+              Select an active pickup location before placing an order.
+            </ThemedText>
+          ) : null}
           <PrimaryButton
             label={cartItems.length === 0 ? 'Cart is empty' : 'Place Order'}
             disabled={!canPlace}
             loading={placingOrder}
             onPress={async () => {
-              if (hasOutOfStock || cartItems.length === 0) {
+              if (hasOutOfStock || cartItems.length === 0 || !checkoutDraft.pickupLocationId) {
                 hapticWarning();
+                if (!checkoutDraft.pickupLocationId) {
+                  showToast('Select a pickup location before checkout', 'warning');
+                }
                 return;
               }
               if (!isAuthenticated) {
@@ -252,13 +330,12 @@ export function CheckoutScreen({ navigation }: NativeStackScreenProps<RootStackP
                   customer_phone: '+996700000000',
                   first_name: user?.firstName || 'Customer',
                   last_name: user?.lastName || '',
-                  city: 'Bishkek',
-                  address_line1: checkoutDraft.addressLabel || 'Pickup',
                   address_line2: checkoutDraft.addressDetail || '',
                   postal_code: '',
                   delivery_comment: checkoutDraft.deliveryTime || '',
                   delivery_method: 'pickup',
-                  payment_method: inferPaymentMethod(),
+                  pickup_location_id: checkoutDraft.pickupLocationId,
+                  payment_method: checkoutDraft.paymentMethod,
                 });
 
                 clearCart();

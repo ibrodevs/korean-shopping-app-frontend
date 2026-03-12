@@ -1,3 +1,17 @@
+import { CheckoutPaymentMethod } from '../types/models';
+
+export type BackendPickupLocation = {
+  id: number;
+  city: string;
+  name: string;
+  address: string;
+  address_line2: string;
+  latitude: string;
+  longitude: string;
+  phone: string;
+  working_hours: string;
+};
+
 export type BackendOrderListItem = {
   id: number;
   uuid: string;
@@ -43,6 +57,11 @@ export type BackendOrderDetail = {
   full_address: string;
   delivery_comment: string;
 
+  pickup_location: number | null;
+  pickup_location_name: string;
+  pickup_city: string;
+  pickup_address: string;
+
   subtotal: string;
   shipping_cost: string;
   discount_amount: string;
@@ -69,6 +88,10 @@ export type BackendPaginated<T> = {
 };
 
 export type AuthedRequest = <T>(path: string, init?: RequestInit) => Promise<T>;
+
+export async function listPickupLocations(request: AuthedRequest): Promise<BackendPickupLocation[]> {
+  return request<BackendPickupLocation[]>('/api/v1/orders/pickup-locations/', { method: 'GET' });
+}
 
 export async function listMyOrders(
   request: AuthedRequest,
@@ -98,18 +121,30 @@ export async function cancelMyOrder(
 
 export async function checkoutOrderFromCart(
   request: AuthedRequest,
-  payload: {
-    customer_phone: string;
-    first_name: string;
-    last_name?: string;
-    city: string;
-    address_line1: string;
-    address_line2?: string;
-    postal_code?: string;
-    delivery_comment?: string;
-    delivery_method: 'courier' | 'pickup';
-    payment_method: 'cash' | 'card' | 'mbank' | 'elqr';
-  },
+  payload:
+    | {
+        customer_phone: string;
+        first_name: string;
+        last_name?: string;
+        city: string;
+        address_line1: string;
+        address_line2?: string;
+        postal_code?: string;
+        delivery_comment?: string;
+        delivery_method: 'courier';
+        payment_method: CheckoutPaymentMethod;
+      }
+    | {
+        customer_phone: string;
+        first_name: string;
+        last_name?: string;
+        address_line2?: string;
+        postal_code?: string;
+        delivery_comment?: string;
+        delivery_method: 'pickup';
+        pickup_location_id: number;
+        payment_method: CheckoutPaymentMethod;
+      },
 ): Promise<BackendOrderDetail> {
   return request<BackendOrderDetail>('/api/v1/orders/checkout/', {
     method: 'POST',

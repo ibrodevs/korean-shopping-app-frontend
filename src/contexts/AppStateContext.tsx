@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, PropsWithChildren, useContext, useEffect, useMemo, useState } from 'react';
 
-import { CartItem } from '../types/models';
+import { CartItem, CheckoutPaymentMethod } from '../types/models';
 import { CatalogFilters, CatalogSortOption, defaultCatalogFilters } from '../types/ui';
 import { CouponCode, getCartLineKey } from '../utils/pricing';
 
@@ -17,10 +17,11 @@ type AddToCartPayload = {
 };
 
 type CheckoutDraft = {
+  pickupLocationId: number | null;
   addressLabel: string;
   addressDetail: string;
   deliveryTime: string;
-  paymentMethod: string;
+  paymentMethod: CheckoutPaymentMethod;
   couponCode: CouponCode;
 };
 
@@ -51,9 +52,9 @@ type AppStateContextValue = {
   isFavorite: (productId: string) => boolean;
   saveForLater: (lineKey: string) => void;
   cartCount: number;
-  setCheckoutAddress: (label: string, detail: string) => void;
+  setCheckoutAddress: (label: string, detail: string, pickupLocationId: number | null) => void;
   setCheckoutDeliveryTime: (value: string) => void;
-  setCheckoutPaymentMethod: (value: string) => void;
+  setCheckoutPaymentMethod: (value: CheckoutPaymentMethod) => void;
   setCheckoutCoupon: (coupon: CouponCode) => void;
   resetCheckoutDraft: () => void;
   addRecentSearch: (query: string) => void;
@@ -65,10 +66,11 @@ type AppStateContextValue = {
 };
 
 const defaultCheckoutDraft: CheckoutDraft = {
-  addressLabel: 'Bishkek Warehouse #1',
-  addressDetail: '115 Chui Ave, Bishkek • Main pickup desk • +996 555 102 030',
+  pickupLocationId: null,
+  addressLabel: 'Pickup location',
+  addressDetail: 'Select an active pickup point before checkout.',
   deliveryTime: 'Next arrival: Tue, 18:00 - 21:00',
-  paymentMethod: 'Visa •••• 4821',
+  paymentMethod: 'cash',
   couponCode: null,
 };
 
@@ -211,15 +213,15 @@ export function AppStateProvider({ children }: PropsWithChildren) {
       removeCartItem(lineKey);
     };
 
-    const setCheckoutAddress = (label: string, detail: string) => {
-      setCheckoutDraft((prev) => ({ ...prev, addressLabel: label, addressDetail: detail }));
+    const setCheckoutAddress = (label: string, detail: string, pickupLocationId: number | null) => {
+      setCheckoutDraft((prev) => ({ ...prev, addressLabel: label, addressDetail: detail, pickupLocationId }));
     };
 
     const setCheckoutDeliveryTime = (deliveryTime: string) => {
       setCheckoutDraft((prev) => ({ ...prev, deliveryTime }));
     };
 
-    const setCheckoutPaymentMethod = (paymentMethod: string) => {
+    const setCheckoutPaymentMethod = (paymentMethod: CheckoutPaymentMethod) => {
       setCheckoutDraft((prev) => ({ ...prev, paymentMethod }));
     };
 

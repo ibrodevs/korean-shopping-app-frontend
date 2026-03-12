@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, PropsWithChildren, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 import { extractApiErrorMessage } from '../api/client';
-import { getMyOrderDetail, listMyOrders } from '../api/orders';
+import { cancelMyOrder, getMyOrderDetail, listMyOrders } from '../api/orders';
 import { useAuth } from './AuthContext';
 import { Order } from '../types/models';
 
@@ -14,6 +14,7 @@ type OrdersContextValue = {
   getOrderById: (orderId: string) => Order | undefined;
   refreshOrders: () => Promise<void>;
   getOrderDetail: (orderId: string) => Promise<Order>;
+  cancelOrder: (orderId: string, reason?: string) => Promise<Order>;
   setOrders: React.Dispatch<React.SetStateAction<Order[]>>;
   lastError: string | null;
 };
@@ -46,6 +47,100 @@ function mapBackendStatusToUi(status: string): Order['status'] {
     default:
       return 'processing';
   }
+}
+
+function canCancelBackendStatus(status: string): boolean {
+  const normalized = (status || '').toLowerCase();
+  return normalized === 'pending' || normalized === 'confirmed';
+}
+
+function mapListOrderToUi(order: {
+  id: number;
+  order_number: string;
+  status: string;
+  created_at: string;
+  total_amount: string;
+  total_items: number;
+  payment_status: string;
+  payment_method: string;
+  delivery_method: string;
+}): Order {
+  return {
+    id: String(order.id),
+    orderNumber: order.order_number,
+    status: mapBackendStatusToUi(order.status),
+    backendStatus: order.status,
+    createdAt: order.created_at,
+    total: toNumber(order.total_amount),
+    totalItems: order.total_items,
+    items: [],
+    paymentStatus: order.payment_status,
+    paymentMethod: order.payment_method,
+    deliveryMethod: order.delivery_method,
+    canCancel: canCancelBackendStatus(order.status),
+  };
+}
+
+function mapDetailOrderToUi(detail: {
+  id: number;
+  order_number: string;
+  status: string;
+  created_at: string;
+  total_amount: string;
+  total_items: number;
+  items: Array<{
+    id: number;
+    product_name: string;
+    sku: string;
+    quantity: number;
+    unit_price: string;
+    line_total: string;
+  }>;
+  payment_status: string;
+  payment_method: string;
+  delivery_method: string;
+  discount_amount: string;
+  shipping_cost: string;
+  customer_email: string;
+  customer_phone: string;
+  full_name: string;
+  full_address: string;
+  delivery_comment: string;
+  pickup_location_name: string;
+  pickup_city: string;
+  pickup_address: string;
+}): Order {
+  return {
+    id: String(detail.id),
+    orderNumber: detail.order_number,
+    status: mapBackendStatusToUi(detail.status),
+    backendStatus: detail.status,
+    createdAt: detail.created_at,
+    total: toNumber(detail.total_amount),
+    totalItems: detail.total_items,
+    items: detail.items.map((item) => ({
+      id: String(item.id),
+      productName: item.product_name,
+      sku: item.sku,
+      qty: item.quantity,
+      price: toNumber(item.unit_price),
+      lineTotal: toNumber(item.line_total),
+    })),
+    paymentStatus: detail.payment_status,
+    paymentMethod: detail.payment_method,
+    deliveryMethod: detail.delivery_method,
+    discount: toNumber(detail.discount_amount),
+    deliveryFee: toNumber(detail.shipping_cost),
+    customerEmail: detail.customer_email,
+    customerPhone: detail.customer_phone,
+    fullName: detail.full_name,
+    fullAddress: detail.full_address,
+    deliveryComment: detail.delivery_comment,
+    pickupLocationName: detail.pickup_location_name,
+    pickupCity: detail.pickup_city,
+    pickupAddress: detail.pickup_address,
+    canCancel: canCancelBackendStatus(detail.status),
+  };
 }
 
 export function OrdersProvider({ children }: PropsWithChildren) {
@@ -83,6 +178,19 @@ export function OrdersProvider({ children }: PropsWithChildren) {
     AsyncStorage.setItem(ORDERS_KEY, JSON.stringify(orders)).catch(() => undefined);
   }, [orders, isHydrated]);
 
+  const upsertOrder = useCallback((nextOrder: Order) => {
+    setOrders((prev) => {
+      const existingIndex = prev.findIndex((order) => order.id === nextOrder.id);
+      if (existingIndex === -1) {
+        return [nextOrder, ...prev];
+      }
+
+      const next = [...prev];
+      next[existingIndex] = { ...next[existingIndex], ...nextOrder };
+      return next;
+    });
+  }, []);
+
   const refreshOrders = useCallback(async () => {
     if (!isAuthenticated) {
       setOrders([]);
@@ -93,18 +201,7 @@ export function OrdersProvider({ children }: PropsWithChildren) {
     try {
       setLastError(null);
       const page = await listMyOrders(requestAuthorizedJson);
-      const mapped: Order[] = page.results.map((o) => ({
-        id: String(o.id),
-        orderNumber: o.order_number,
-        status: mapBackendStatusToUi(o.status),
-        createdAt: o.created_at,
-        total: toNumber(o.total_amount),
-        totalItems: o.total_items,
-        items: [],
-        paymentStatus: o.payment_status,
-        paymentMethod: o.payment_method,
-        deliveryMethod: o.delivery_method,
-      }));
+      const mapped: Order[] = page.results.map(mapListOrderToUi);
       setOrders(mapped);
     } catch (e) {
       setLastError(extractApiErrorMessage(e));
@@ -117,32 +214,20 @@ export function OrdersProvider({ children }: PropsWithChildren) {
     if (!Number.isFinite(numericId)) throw new Error('Invalid order id');
 
     const detail = await getMyOrderDetail(requestAuthorizedJson, numericId);
-    const mapped: Order = {
-      id: String(detail.id),
-      orderNumber: detail.order_number,
-      status: mapBackendStatusToUi(detail.status),
-      createdAt: detail.created_at,
-      total: toNumber(detail.total_amount),
-      totalItems: detail.total_items,
-      items: detail.items.map((it) => ({
-        id: String(it.id),
-        productName: it.product_name,
-        sku: it.sku,
-        qty: it.quantity,
-        price: toNumber(it.unit_price),
-        lineTotal: toNumber(it.line_total),
-      })),
-      paymentStatus: detail.payment_status,
-      paymentMethod: detail.payment_method,
-      deliveryMethod: detail.delivery_method,
-      discount: toNumber(detail.discount_amount),
-      deliveryFee: toNumber(detail.shipping_cost),
-    };
-
-    // Keep list in sync if present.
-    setOrders((prev) => prev.map((o) => (o.id === mapped.id ? { ...o, ...mapped } : o)));
+    const mapped = mapDetailOrderToUi(detail);
+    upsertOrder(mapped);
     return mapped;
-  }, [requestAuthorizedJson]);
+  }, [requestAuthorizedJson, upsertOrder]);
+
+  const cancelOrder = useCallback(async (orderId: string, reason?: string): Promise<Order> => {
+    const numericId = Number(orderId);
+    if (!Number.isFinite(numericId)) throw new Error('Invalid order id');
+
+    const detail = await cancelMyOrder(requestAuthorizedJson, numericId, { reason });
+    const mapped = mapDetailOrderToUi(detail);
+    upsertOrder(mapped);
+    return mapped;
+  }, [requestAuthorizedJson, upsertOrder]);
 
   useEffect(() => {
     if (!isHydrated || !isAuthHydrated) return;
@@ -165,10 +250,11 @@ export function OrdersProvider({ children }: PropsWithChildren) {
       getOrderById,
       refreshOrders,
       getOrderDetail,
+      cancelOrder,
       setOrders,
       lastError,
     };
-  }, [getOrderDetail, isHydrated, lastError, orders, refreshOrders]);
+  }, [cancelOrder, getOrderDetail, isHydrated, lastError, orders, refreshOrders]);
 
   return <OrdersContext.Provider value={value}>{children}</OrdersContext.Provider>;
 }

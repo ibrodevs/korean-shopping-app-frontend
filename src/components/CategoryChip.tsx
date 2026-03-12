@@ -1,5 +1,4 @@
 import React from 'react';
-import { Ionicons } from '@expo/vector-icons';
 import { Pressable } from 'react-native';
 
 import { Category } from '../types/models';
@@ -20,9 +19,7 @@ export function CategoryChip({ category, active = false, onPress }: Props) {
       onPress={onPress}
       style={({ pressed }) => ({
         alignSelf: 'center',
-        flexDirection: 'row',
         alignItems: 'center',
-        gap: 8,
         paddingHorizontal: 10,
         paddingVertical: 8,
         borderRadius: 999,
@@ -32,7 +29,6 @@ export function CategoryChip({ category, active = false, onPress }: Props) {
         opacity: pressed ? 0.9 : 1,
       })}
     >
-      <Ionicons name={category.iconName as keyof typeof Ionicons.glyphMap} size={16} color={active ? '#FFFFFF' : theme.colors.textMuted} />
       <ThemedText variant="caption" style={{ color: active ? '#FFFFFF' : theme.colors.text, fontWeight: '600' }}>
         {category.title}
       </ThemedText>
