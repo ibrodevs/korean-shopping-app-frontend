@@ -10,7 +10,7 @@ import { ThemedText } from '../components/ThemedText';
 import { ThemedView } from '../components/ThemedView';
 import { useAppState } from '../contexts/AppStateContext';
 import { useToast } from '../contexts/ToastContext';
-import { products } from '../data/mockData';
+import { useUiProductsBySlugs } from '../hooks/useUiProductsBySlugs';
 import { useTheme } from '../theme/ThemeProvider';
 import { CartScreenProps } from '../types/navigation';
 import { formatSom } from '../utils/format';
@@ -28,13 +28,15 @@ export function CartScreen({ navigation }: CartScreenProps) {
   } = useAppState();
   const { showToast } = useToast();
 
+  const { products, productsById } = useUiProductsBySlugs(cartItems.map((x) => x.productId), { lang: 'ru' });
+
   const cartRows = useMemo(
     () =>
       cartItems.map((item) => ({
         item,
-        product: products.find((p) => p.id === item.productId),
+        product: productsById[item.productId],
       })),
-    [cartItems],
+    [cartItems, productsById],
   );
 
   const subtotal = calcSubtotal(cartItems, products);

@@ -18,7 +18,7 @@ const statusLabels = {
 } as const;
 
 export function OrdersScreen({ navigation }: OrdersScreenProps) {
-  const { orders } = useOrders();
+  const { orders, refreshOrders } = useOrders();
   const [refreshing, setRefreshing] = useState(false);
 
   const grouped = useMemo(() => {
@@ -62,9 +62,13 @@ export function OrdersScreen({ navigation }: OrdersScreenProps) {
               refreshControl={
                 <RefreshControl
                   refreshing={refreshing}
-                  onRefresh={() => {
+                  onRefresh={async () => {
                     setRefreshing(true);
-                    setTimeout(() => setRefreshing(false), 900);
+                    try {
+                      await refreshOrders();
+                    } finally {
+                      setRefreshing(false);
+                    }
                   }}
                 />
               }

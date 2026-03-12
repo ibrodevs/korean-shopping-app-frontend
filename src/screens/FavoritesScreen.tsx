@@ -7,7 +7,7 @@ import { EmptyState } from '../components/EmptyState';
 import { ProductCard } from '../components/ProductCard';
 import { useAppState } from '../contexts/AppStateContext';
 import { useToast } from '../contexts/ToastContext';
-import { products } from '../data/mockData';
+import { useUiProductsBySlugs } from '../hooks/useUiProductsBySlugs';
 import { useTheme } from '../theme/ThemeProvider';
 import { FavoritesScreenProps } from '../types/navigation';
 import { ThemedView } from '../components/ThemedView';
@@ -18,9 +18,11 @@ export function FavoritesScreen({ navigation }: FavoritesScreenProps) {
   const { favoriteIds, addToCart } = useAppState();
   const { showToast } = useToast();
 
+  const { productsById } = useUiProductsBySlugs(favoriteIds, { lang: 'ru' });
+
   const items = useMemo(
-    () => products.filter((product) => favoriteIds.includes(product.id)),
-    [favoriteIds],
+    () => favoriteIds.map((id) => productsById[id]).filter(Boolean),
+    [favoriteIds, productsById],
   );
 
   return (

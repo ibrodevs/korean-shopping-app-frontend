@@ -23,6 +23,8 @@ type Props = {
 export function OrderCard({ order, onPress }: Props) {
   const theme = useTheme();
   const { t } = useI18n();
+  const title = order.orderNumber ?? order.id;
+  const itemCount = order.totalItems ?? order.items.length;
 
   return (
     <Pressable
@@ -39,13 +41,13 @@ export function OrderCard({ order, onPress }: Props) {
     >
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
         <View style={{ flex: 1 }}>
-          <ThemedText weight="semibold">{order.id}</ThemedText>
+          <ThemedText weight="semibold">{title}</ThemedText>
           <ThemedText variant="caption">{formatDateTime(order.createdAt)}</ThemedText>
         </View>
         <Badge label={order.status[0].toUpperCase() + order.status.slice(1)} tone={statusToneMap[order.status]} />
       </View>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-        <ThemedText variant="caption">{t('{{count}} items', { count: order.items.length })}</ThemedText>
+        <ThemedText variant="caption">{t('{{count}} items', { count: itemCount })}</ThemedText>
         <ThemedText variant="caption" style={{ color: theme.colors.text, fontWeight: '700' }}>
           {formatSom(order.total)}
         </ThemedText>

@@ -9,6 +9,7 @@ import {
   refreshAccessToken,
   registerRequest,
 } from '../api/auth';
+import { ApiError, requestJson } from '../api/client';
 
 type AuthUser = {
   id?: number;
@@ -23,6 +24,7 @@ type AuthContextValue = {
   user: AuthUser | null;
   isAuthenticated: boolean;
   isHydrated: boolean;
+  requestAuthorizedJson: <T>(path: string, init?: RequestInit) => Promise<T>;
   login: (email: string, password: string) => Promise<void>;
   loginWithGoogle: (params: { idToken?: string; accessToken?: string }) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
@@ -60,6 +62,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [refreshToken, setRefreshToken] = useState<string | null>(null);
   const [isHydrated, setIsHydrated] = useState(false);
 
+  const persistSession = async (session: AuthSession) => {
+    await AsyncStorage.setItem(AUTH_KEY, JSON.stringify(session));
+  };
+
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -88,14 +94,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
           setUser(nextUser);
           setAccessToken(nextAccessToken);
           setRefreshToken(session.refreshToken);
-          await AsyncStorage.setItem(
-            AUTH_KEY,
-            JSON.stringify({
-              user: nextUser,
-              accessToken: nextAccessToken,
-              refreshToken: session.refreshToken,
-            } satisfies AuthSession),
-          );
+          await persistSession({
+            user: nextUser,
+            accessToken: nextAccessToken,
+            refreshToken: session.refreshToken,
+          });
         }
       } catch {
         if (mounted) {
@@ -118,20 +121,43 @@ export function AuthProvider({ children }: PropsWithChildren) {
       user,
       isAuthenticated: !!user,
       isHydrated,
+      requestAuthorizedJson: async <T,>(path: string, init?: RequestInit): Promise<T> => {
+        if (!accessToken) throw new Error('Not authenticated');
+
+        const doRequest = (token: string) =>
+          requestJson<T>(path, {
+            ...init,
+            headers: {
+              ...(init?.headers ?? {}),
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+        try {
+          return await doRequest(accessToken);
+        } catch (e) {
+          if (e instanceof ApiError && e.status === 401 && refreshToken) {
+            const nextAccessToken = await refreshAccessToken(refreshToken);
+            setAccessToken(nextAccessToken);
+            if (user) {
+              await persistSession({ user, accessToken: nextAccessToken, refreshToken });
+            }
+            return doRequest(nextAccessToken);
+          }
+          throw e;
+        }
+      },
       login: async (email, password) => {
         const response = await loginRequest(email, password);
         const nextUser = mapBackendUser(response.user);
         setUser(nextUser);
         setAccessToken(response.tokens.access);
         setRefreshToken(response.tokens.refresh);
-        await AsyncStorage.setItem(
-          AUTH_KEY,
-          JSON.stringify({
-            user: nextUser,
-            accessToken: response.tokens.access,
-            refreshToken: response.tokens.refresh,
-          } satisfies AuthSession),
-        );
+        await persistSession({
+          user: nextUser,
+          accessToken: response.tokens.access,
+          refreshToken: response.tokens.refresh,
+        });
       },
       loginWithGoogle: async ({ idToken, accessToken: googleAccessToken }) => {
         const response = await googleAuthRequest({
@@ -142,14 +168,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
         setUser(nextUser);
         setAccessToken(response.tokens.access);
         setRefreshToken(response.tokens.refresh);
-        await AsyncStorage.setItem(
-          AUTH_KEY,
-          JSON.stringify({
-            user: nextUser,
-            accessToken: response.tokens.access,
-            refreshToken: response.tokens.refresh,
-          } satisfies AuthSession),
-        );
+        await persistSession({
+          user: nextUser,
+          accessToken: response.tokens.access,
+          refreshToken: response.tokens.refresh,
+        });
       },
       register: async (name, email, password) => {
         const [firstName = '', ...lastNameParts] = name.trim().split(/\s+/).filter(Boolean);
@@ -163,14 +186,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
         setUser(nextUser);
         setAccessToken(response.tokens.access);
         setRefreshToken(response.tokens.refresh);
-        await AsyncStorage.setItem(
-          AUTH_KEY,
-          JSON.stringify({
-            user: nextUser,
-            accessToken: response.tokens.access,
-            refreshToken: response.tokens.refresh,
-          } satisfies AuthSession),
-        );
+        await persistSession({
+          user: nextUser,
+          accessToken: response.tokens.access,
+          refreshToken: response.tokens.refresh,
+        });
       },
       logout: async () => {
         if (accessToken && refreshToken) {
@@ -198,14 +218,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
         };
         setUser(nextUser);
         if (accessToken && refreshToken) {
-          await AsyncStorage.setItem(
-            AUTH_KEY,
-            JSON.stringify({
-              user: nextUser,
-              accessToken,
-              refreshToken,
-            } satisfies AuthSession),
-          );
+          await persistSession({
+            user: nextUser,
+            accessToken,
+            refreshToken,
+          });
         }
       },
     }),

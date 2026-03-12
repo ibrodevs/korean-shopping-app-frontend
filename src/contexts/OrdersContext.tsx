@@ -1,41 +1,58 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { createContext, PropsWithChildren, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, PropsWithChildren, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
-import { mockOrders, products } from '../data/mockData';
-import { CartItem, Order } from '../types/models';
+import { extractApiErrorMessage } from '../api/client';
+import { getMyOrderDetail, listMyOrders } from '../api/orders';
+import { useAuth } from './AuthContext';
+import { Order } from '../types/models';
 
 const ORDERS_KEY = 'korean-app/orders';
-
-type CreateOrderPayload = {
-  cartItems: CartItem[];
-  subtotal: number;
-  discount: number;
-  deliveryFee: number;
-  total: number;
-  couponCode?: string | null;
-};
 
 type OrdersContextValue = {
   orders: Order[];
   isHydrated: boolean;
-  createOrderFromCart: (payload: CreateOrderPayload) => Order;
   getOrderById: (orderId: string) => Order | undefined;
-  reorderOrderToCartItems: (orderId: string) => CartItem[];
+  refreshOrders: () => Promise<void>;
+  getOrderDetail: (orderId: string) => Promise<Order>;
   setOrders: React.Dispatch<React.SetStateAction<Order[]>>;
+  lastError: string | null;
 };
 
 const OrdersContext = createContext<OrdersContextValue | null>(null);
 
-function buildOrderId() {
-  const now = new Date();
-  return `ord-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(
-    now.getDate(),
-  ).padStart(2, '0')}-${Math.floor(Math.random() * 9000 + 1000)}`;
+function toNumber(value: unknown): number {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+  if (typeof value === 'string') {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  return 0;
+}
+
+function mapBackendStatusToUi(status: string): Order['status'] {
+  switch ((status || '').toLowerCase()) {
+    case 'shipped':
+      return 'shipped';
+    case 'delivered':
+      return 'delivered';
+    case 'canceled':
+    case 'cancelled':
+    case 'refunded':
+    case 'failed':
+      return 'cancelled';
+    case 'pending':
+    case 'confirmed':
+    case 'processing':
+    default:
+      return 'processing';
+  }
 }
 
 export function OrdersProvider({ children }: PropsWithChildren) {
   const [orders, setOrders] = useState<Order[]>([]);
   const [isHydrated, setIsHydrated] = useState(false);
+  const [lastError, setLastError] = useState<string | null>(null);
+  const { isAuthenticated, isHydrated: isAuthHydrated, requestAuthorizedJson } = useAuth();
 
   useEffect(() => {
     let mounted = true;
@@ -46,11 +63,9 @@ export function OrdersProvider({ children }: PropsWithChildren) {
         if (!mounted) return;
         if (raw) {
           setOrders(JSON.parse(raw) as Order[]);
-        } else {
-          setOrders(mockOrders);
         }
       } catch {
-        if (mounted) setOrders(mockOrders);
+        if (mounted) setOrders([]);
       } finally {
         if (mounted) setIsHydrated(true);
       }
@@ -68,51 +83,92 @@ export function OrdersProvider({ children }: PropsWithChildren) {
     AsyncStorage.setItem(ORDERS_KEY, JSON.stringify(orders)).catch(() => undefined);
   }, [orders, isHydrated]);
 
-  const value = useMemo<OrdersContextValue>(() => {
-    const createOrderFromCart = ({ cartItems, subtotal, discount, deliveryFee, total, couponCode }: CreateOrderPayload) => {
-      const order: Order = {
-        id: buildOrderId(),
-        items: cartItems.map((item) => ({
-          productId: item.productId,
-          qty: item.qty,
-          price: products.find((p) => p.id === item.productId)?.price ?? 0,
-          selectedColor: item.selectedColor,
-          selectedSize: item.selectedSize,
-        })),
-        total,
-        status: 'processing',
-        createdAt: new Date().toISOString(),
-        discount,
-        deliveryFee,
-        couponCode: couponCode ?? undefined,
-      };
+  const refreshOrders = useCallback(async () => {
+    if (!isAuthenticated) {
+      setOrders([]);
+      setLastError(null);
+      return;
+    }
 
-      setOrders((prev) => [order, ...prev]);
-      return order;
-    };
-
-    const getOrderById = (orderId: string) => orders.find((order) => order.id === orderId);
-
-    const reorderOrderToCartItems = (orderId: string) => {
-      const order = orders.find((item) => item.id === orderId);
-      if (!order) return [];
-      return order.items.map((item) => ({
-        productId: item.productId,
-        qty: item.qty,
-        selectedColor: item.selectedColor,
-        selectedSize: item.selectedSize,
+    try {
+      setLastError(null);
+      const page = await listMyOrders(requestAuthorizedJson);
+      const mapped: Order[] = page.results.map((o) => ({
+        id: String(o.id),
+        orderNumber: o.order_number,
+        status: mapBackendStatusToUi(o.status),
+        createdAt: o.created_at,
+        total: toNumber(o.total_amount),
+        totalItems: o.total_items,
+        items: [],
+        paymentStatus: o.payment_status,
+        paymentMethod: o.payment_method,
+        deliveryMethod: o.delivery_method,
       }));
+      setOrders(mapped);
+    } catch (e) {
+      setLastError(extractApiErrorMessage(e));
+      throw e;
+    }
+  }, [isAuthenticated, requestAuthorizedJson]);
+
+  const getOrderDetail = useCallback(async (orderId: string): Promise<Order> => {
+    const numericId = Number(orderId);
+    if (!Number.isFinite(numericId)) throw new Error('Invalid order id');
+
+    const detail = await getMyOrderDetail(requestAuthorizedJson, numericId);
+    const mapped: Order = {
+      id: String(detail.id),
+      orderNumber: detail.order_number,
+      status: mapBackendStatusToUi(detail.status),
+      createdAt: detail.created_at,
+      total: toNumber(detail.total_amount),
+      totalItems: detail.total_items,
+      items: detail.items.map((it) => ({
+        id: String(it.id),
+        productName: it.product_name,
+        sku: it.sku,
+        qty: it.quantity,
+        price: toNumber(it.unit_price),
+        lineTotal: toNumber(it.line_total),
+      })),
+      paymentStatus: detail.payment_status,
+      paymentMethod: detail.payment_method,
+      deliveryMethod: detail.delivery_method,
+      discount: toNumber(detail.discount_amount),
+      deliveryFee: toNumber(detail.shipping_cost),
     };
+
+    // Keep list in sync if present.
+    setOrders((prev) => prev.map((o) => (o.id === mapped.id ? { ...o, ...mapped } : o)));
+    return mapped;
+  }, [requestAuthorizedJson]);
+
+  useEffect(() => {
+    if (!isHydrated || !isAuthHydrated) return;
+    if (!isAuthenticated) {
+      setOrders([]);
+      setLastError(null);
+      return;
+    }
+
+    // Best-effort initial fetch after login/hydration
+    refreshOrders().catch(() => undefined);
+  }, [isAuthenticated, isAuthHydrated, isHydrated, refreshOrders]);
+
+  const value = useMemo<OrdersContextValue>(() => {
+    const getOrderById = (orderId: string) => orders.find((order) => order.id === orderId);
 
     return {
       orders,
       isHydrated,
-      createOrderFromCart,
       getOrderById,
-      reorderOrderToCartItems,
+      refreshOrders,
+      getOrderDetail,
       setOrders,
+      lastError,
     };
-  }, [orders, isHydrated]);
+  }, [getOrderDetail, isHydrated, lastError, orders, refreshOrders]);
 
   return <OrdersContext.Provider value={value}>{children}</OrdersContext.Provider>;
 }

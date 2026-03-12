@@ -8,13 +8,18 @@ import { useAppState } from '../contexts/AppStateContext';
 import { useI18n } from '../contexts/I18nContext';
 import { useOrders } from '../contexts/OrdersContext';
 import { useToast } from '../contexts/ToastContext';
-import { products } from '../data/mockData';
+import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../theme/ThemeProvider';
 import { RootStackParamList } from '../types/navigation';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { formatSom } from '../utils/format';
 import { hapticSuccess, hapticWarning } from '../utils/haptics';
 import { calcDelivery, calcDiscount, calcSubtotal, calcTotal } from '../utils/pricing';
+import { extractApiErrorMessage } from '../api/client';
+import { bulkAddToCart, clearCart as clearBackendCart } from '../api/cart';
+import { checkoutOrderFromCart } from '../api/orders';
+import { useUiProductsBySlugs } from '../hooks/useUiProductsBySlugs';
+import { getBackendProductDetailCached } from '../api/productDetailsCache';
 
 const arrivalSlots = [
   'Next arrival: Mon, 18:00 - 21:00',
@@ -33,20 +38,56 @@ export function CheckoutScreen({ navigation }: NativeStackScreenProps<RootStackP
     clearCart,
     resetCheckoutDraft,
   } = useAppState();
-  const { createOrderFromCart } = useOrders();
+  const { refreshOrders } = useOrders();
+  const { isAuthenticated, user, requestAuthorizedJson } = useAuth();
   const { showToast } = useToast();
 
+  const { products: backendProducts, productsById: backendProductsById } = useUiProductsBySlugs(
+    cartItems.map((x) => x.productId),
+    { lang: 'ru' },
+  );
   const resolvedRows = useMemo(
-    () => cartItems.map((item) => ({ item, product: products.find((p) => p.id === item.productId) })),
-    [cartItems],
+    () => cartItems.map((item) => ({ item, product: backendProductsById[item.productId] })),
+    [backendProductsById, cartItems],
   );
 
-  const subtotal = calcSubtotal(cartItems, products);
+  const subtotal = calcSubtotal(cartItems, backendProducts);
   const discount = calcDiscount(subtotal, checkoutDraft.couponCode);
   const delivery = calcDelivery(subtotal);
   const total = calcTotal(subtotal, discount, delivery);
   const hasOutOfStock = resolvedRows.some((row) => row.product?.stockStatus === 'out_of_stock');
   const canPlace = cartItems.length > 0 && !hasOutOfStock && !placingOrder;
+
+  const resolveDefaultVariantIds = async () => {
+    const uniqueSlugs = Array.from(new Set(cartItems.map((x) => x.productId)));
+    const details = await Promise.all(uniqueSlugs.map((slug) => getBackendProductDetailCached(slug, { lang: 'ru' })));
+    const slugToVariantId = new Map<string, number>();
+
+    for (const detail of details) {
+      const defaultVariant = detail.variants.find((v) => v.is_default) ?? detail.variants[0];
+      if (!defaultVariant?.id) {
+        throw new Error(`No active variant found for ${detail.slug}`);
+      }
+      slugToVariantId.set(detail.slug, defaultVariant.id);
+    }
+
+    const variantIdToQty = new Map<number, number>();
+    for (const item of cartItems) {
+      const variantId = slugToVariantId.get(item.productId);
+      if (!variantId) throw new Error(`Missing variant mapping for ${item.productId}`);
+      variantIdToQty.set(variantId, (variantIdToQty.get(variantId) ?? 0) + item.qty);
+    }
+
+    return Array.from(variantIdToQty.entries()).map(([variant_id, quantity]) => ({ variant_id, quantity }));
+  };
+
+  const inferPaymentMethod = (): 'cash' | 'card' | 'mbank' | 'elqr' => {
+    const raw = (checkoutDraft.paymentMethod || '').toLowerCase();
+    if (raw.includes('mbank')) return 'mbank';
+    if (raw.includes('elqr') || raw.includes('qr')) return 'elqr';
+    if (raw.includes('visa') || raw.includes('master') || raw.includes('card')) return 'card';
+    return 'cash';
+  };
 
   const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
     <View
@@ -187,28 +228,52 @@ export function CheckoutScreen({ navigation }: NativeStackScreenProps<RootStackP
             label={cartItems.length === 0 ? 'Cart is empty' : 'Place Order'}
             disabled={!canPlace}
             loading={placingOrder}
-            onPress={() => {
+            onPress={async () => {
               if (hasOutOfStock || cartItems.length === 0) {
                 hapticWarning();
                 return;
               }
+              if (!isAuthenticated) {
+                hapticWarning();
+                showToast('Please sign in to place an order', 'warning');
+                navigation.navigate('AuthWelcome');
+                return;
+              }
+
               setPlacingOrder(true);
-              const order = createOrderFromCart({
-                cartItems,
-                subtotal,
-                discount,
-                deliveryFee: delivery,
-                total,
-                couponCode: checkoutDraft.couponCode,
-              });
-              clearCart();
-              resetCheckoutDraft();
-              setTimeout(() => {
+              try {
+                const bulkItems = await resolveDefaultVariantIds();
+
+                // Keep backend cart in sync with local cart for checkout.
+                await clearBackendCart(requestAuthorizedJson);
+                await bulkAddToCart(requestAuthorizedJson, bulkItems);
+
+                const placed = await checkoutOrderFromCart(requestAuthorizedJson, {
+                  customer_phone: '+996700000000',
+                  first_name: user?.firstName || 'Customer',
+                  last_name: user?.lastName || '',
+                  city: 'Bishkek',
+                  address_line1: checkoutDraft.addressLabel || 'Pickup',
+                  address_line2: checkoutDraft.addressDetail || '',
+                  postal_code: '',
+                  delivery_comment: checkoutDraft.deliveryTime || '',
+                  delivery_method: 'pickup',
+                  payment_method: inferPaymentMethod(),
+                });
+
+                clearCart();
+                resetCheckoutDraft();
+                await refreshOrders();
+
                 hapticSuccess();
                 showToast('Order placed', 'success');
+                navigation.replace('Success', { orderId: String(placed.id) });
+              } catch (e) {
+                hapticWarning();
+                showToast(extractApiErrorMessage(e), 'warning');
+              } finally {
                 setPlacingOrder(false);
-                navigation.replace('Success', { orderId: order.id });
-              }, 500);
+              }
             }}
           />
         </Section>

@@ -1,16 +1,13 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Modal, ScrollView, View } from 'react-native';
 
 import { Badge } from '../components/Badge';
 import { PrimaryButton } from '../components/PrimaryButton';
-import { ProductRow } from '../components/ProductRow';
 import { StatusTimeline } from '../components/StatusTimeline';
 import { ThemedText } from '../components/ThemedText';
 import { ThemedView } from '../components/ThemedView';
-import { useAppState } from '../contexts/AppStateContext';
 import { useI18n } from '../contexts/I18nContext';
 import { useOrders } from '../contexts/OrdersContext';
-import { products } from '../data/mockData';
 import { useTheme } from '../theme/ThemeProvider';
 import { RootStackParamList } from '../types/navigation';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -20,30 +17,63 @@ export function OrderDetailsScreen({ route, navigation }: NativeStackScreenProps
   const theme = useTheme();
   const { t } = useI18n();
   const [showReviewModal, setShowReviewModal] = useState(false);
-  const { getOrderById } = useOrders();
-  const { addManyToCart } = useAppState();
-  const order = getOrderById(route.params.orderId);
+  const { getOrderById, getOrderDetail } = useOrders();
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const orderProducts = useMemo(
-    () =>
-      order?.items.map((line) => ({
-        line,
-        product: products.find((p) => p.id === line.productId),
-      })) ?? [],
-    [order],
-  );
+  const cached = getOrderById(route.params.orderId);
+  const [order, setOrder] = useState(cached);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        setLoading(true);
+        setErrorMessage(null);
+        const detail = await getOrderDetail(route.params.orderId);
+        if (cancelled) return;
+        setOrder(detail);
+      } catch (e) {
+        if (cancelled) return;
+        setErrorMessage(e instanceof Error ? e.message : 'Failed to load order');
+      } finally {
+        if (cancelled) return;
+        setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [getOrderDetail, route.params.orderId]);
+
+  const orderItems = useMemo(() => order?.items ?? [], [order]);
+
+  if (loading && !order) {
+    return (
+      <ThemedView style={{ flex: 1, padding: 16 }}>
+        <ThemedText variant="subtitle">Loading order…</ThemedText>
+      </ThemedView>
+    );
+  }
 
   if (!order) {
     return (
       <ThemedView style={{ flex: 1, padding: 16 }}>
         <ThemedText variant="subtitle">Order not found</ThemedText>
+        {errorMessage ? (
+          <ThemedText variant="caption" style={{ marginTop: 8, color: theme.colors.textMuted }}>
+            {errorMessage}
+          </ThemedText>
+        ) : null}
       </ThemedView>
     );
   }
 
-  const subtotal = order.items.reduce((sum, item) => sum + item.qty * item.price, 0);
+  const title = order.orderNumber ?? order.id;
+  const subtotal = orderItems.reduce((sum, item) => sum + item.qty * item.price, 0);
   const discount = order.discount ?? 0;
-  const delivery = order.deliveryFee ?? 3000;
+  const delivery = order.deliveryFee ?? 0;
 
   return (
     <ThemedView style={{ flex: 1 }}>
@@ -51,7 +81,7 @@ export function OrderDetailsScreen({ route, navigation }: NativeStackScreenProps
         <View style={{ gap: 8, borderRadius: theme.radii.lg, borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.surface, padding: 12 }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
             <View>
-              <ThemedText weight="bold">{order.id}</ThemedText>
+              <ThemedText weight="bold">{title}</ThemedText>
               <ThemedText variant="caption">{formatDateTime(order.createdAt)}</ThemedText>
             </View>
             <Badge
@@ -70,24 +100,25 @@ export function OrderDetailsScreen({ route, navigation }: NativeStackScreenProps
 
         <View style={{ gap: 10 }}>
           <ThemedText variant="subtitle" style={{ fontSize: 16 }}>Items</ThemedText>
-          {orderProducts.map(({ line, product }) =>
-            product ? (
-              <View key={`${order.id}-${line.productId}-${line.selectedSize ?? ''}-${line.selectedColor ?? ''}`} style={{ gap: 6 }}>
-                <ProductRow
-                  product={product}
-                  onPress={() => navigation.navigate('ProductDetails', { productId: product.id })}
-                />
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 4 }}>
-                  <ThemedText variant="caption">
-                    {t('Qty {{qty}}', { qty: line.qty })}
-                    {line.selectedSize ? ` • ${t('Size {{value}}', { value: line.selectedSize })}` : ''}
-                    {line.selectedColor ? ` • ${line.selectedColor}` : ''}
+          {orderItems.map((line) => (
+            <View key={`${order.id}-${line.id ?? line.sku ?? line.productName ?? ''}`} style={{ gap: 6, borderRadius: theme.radii.lg, borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.surface, padding: 12 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10 }}>
+                <View style={{ flex: 1 }}>
+                  <ThemedText weight="semibold" numberOfLines={2}>
+                    {line.productName ?? 'Item'}
                   </ThemedText>
-                  <ThemedText variant="caption">{formatSom(line.price * line.qty)}</ThemedText>
+                  {line.sku ? <ThemedText variant="caption">{line.sku}</ThemedText> : null}
                 </View>
+                <ThemedText variant="caption" style={{ fontWeight: '700' }}>
+                  {formatSom((line.lineTotal ?? line.price * line.qty) || 0)}
+                </ThemedText>
               </View>
-            ) : null,
-          )}
+              <ThemedText variant="caption" style={{ color: theme.colors.textMuted }}>
+                {t('Qty {{qty}}', { qty: line.qty })}
+                {line.price ? ` • ${formatSom(line.price)} each` : ''}
+              </ThemedText>
+            </View>
+          ))}
         </View>
 
         <View style={{ gap: 8, borderRadius: theme.radii.lg, borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.surface, padding: 12 }}>
@@ -116,14 +147,7 @@ export function OrderDetailsScreen({ route, navigation }: NativeStackScreenProps
         <PrimaryButton
           label="Reorder"
           onPress={() => {
-            addManyToCart(
-              order.items.map((item) => ({
-                productId: item.productId,
-                qty: item.qty,
-                selectedColor: item.selectedColor,
-                selectedSize: item.selectedSize,
-              })),
-            );
+            // Snapshot orders do not include product slugs; reorder requires an extra mapping layer.
             navigation.navigate('MainTabs', { screen: 'CartTab' });
           }}
         />

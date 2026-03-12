@@ -30,20 +30,29 @@ export interface CartItem {
 }
 
 export interface OrderLineItem {
-  productId: string;
+  id?: string;
+  productId?: string;
+  productName?: string;
+  sku?: string;
   qty: number;
   price: number;
+  lineTotal?: number;
   selectedSize?: string;
   selectedColor?: string;
 }
 
 export interface Order {
   id: string;
+  orderNumber?: string;
   items: OrderLineItem[];
+  totalItems?: number;
   total: number;
   status: 'processing' | 'shipped' | 'delivered' | 'cancelled';
   createdAt: string;
   discount?: number;
   deliveryFee?: number;
   couponCode?: string;
+  paymentStatus?: string;
+  paymentMethod?: string;
+  deliveryMethod?: string;
 }
